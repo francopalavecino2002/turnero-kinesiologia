@@ -1,0 +1,39 @@
+### === Java / Maven (backend) === ###
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+*.class
+*.jar
+*.war
+!.mvn/wrapper/maven-wrapper.jar
+hs_err_pid*
+
+### === Node / Angular (frontend) === ###
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/.angular/cache/
+npm-debug.log*
+yarn-error.log*
+frontend/coverage/
+
+### === Variables de entorno y configuración sensible === ###
+.env
+.env.*
+!.env.example
+backend/src/main/resources/application-local.yml
+backend/src/main/resources/application-local.yaml
+backend/src/main/resources/application-local.properties
+*.pem
+*.key
+
+### === Configuración de editores / IDEs === ###
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+
+### === Logs === ###
+*.log
+logs/
