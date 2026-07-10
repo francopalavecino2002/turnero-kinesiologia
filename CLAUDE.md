@@ -42,3 +42,21 @@ _Pendiente de definir._
 ## Endpoints
 
 _Pendiente de definir._
+
+## Decisiones de diseño — gestión de datos
+
+- Servicios, profesionales y disponibilidades son entidades administrables
+  vía interfaz (CRUD), NO datos hardcodeados en el código.
+- Modelo de permisos (auto-gestión con supervisión):
+  - Cada profesional se registra y gestiona lo suyo: qué servicios ofrece
+    y sus horarios de disponibilidad.
+  - El administrador (dueña del consultorio) puede editar los datos de
+    cualquier profesional, darlo de alta/baja, y gestionar servicios.
+  - Regla: un profesional edita sus propios datos; el admin edita los de
+    cualquiera (ownership + rol de administración).
+- Reglas de negocio del dominio:
+  - Duración del turno según el servicio (60 min general, 30 min EMSELLA).
+  - Máximo 2 turnos solapados en el mismo horario (capacidad = 2 boxes,
+    configurable a futuro).
+  - El turno debe caer dentro de la disponibilidad del profesional.
+  - Un profesional solo atiende servicios que ofrece.
