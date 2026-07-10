@@ -17,7 +17,7 @@ import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "turno")
+@Table(name = "appointment")
 public class Appointment {
 
     @Id
@@ -25,15 +25,15 @@ public class Appointment {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "paciente_id", nullable = false)
+    @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "profesional_id", nullable = false)
+    @JoinColumn(name = "professional_id", nullable = false)
     private Professional professional;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "servicio_id", nullable = false)
+    @JoinColumn(name = "service_id", nullable = false)
     private Service service;
 
     @Column(nullable = false)

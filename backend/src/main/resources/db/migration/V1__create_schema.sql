@@ -1,61 +1,61 @@
-CREATE TABLE usuario (
+CREATE TABLE user_account (
     id BIGSERIAL PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    rol VARCHAR(20) NOT NULL CHECK (rol IN ('PACIENTE', 'PROFESIONAL', 'ADMINISTRADOR')),
-    activo BOOLEAN NOT NULL DEFAULT TRUE
+    role VARCHAR(20) NOT NULL CHECK (role IN ('PATIENT', 'PROFESSIONAL', 'ADMIN')),
+    active BOOLEAN NOT NULL DEFAULT TRUE
 );
 
-CREATE TABLE paciente (
+CREATE TABLE patient (
     id BIGSERIAL PRIMARY KEY,
-    nombre VARCHAR(255) NOT NULL,
-    apellido VARCHAR(255) NOT NULL,
-    telefono VARCHAR(50) NOT NULL,
-    usuario_id BIGINT NOT NULL UNIQUE REFERENCES usuario (id)
+    first_name VARCHAR(255) NOT NULL,
+    last_name VARCHAR(255) NOT NULL,
+    phone VARCHAR(50) NOT NULL,
+    user_id BIGINT NOT NULL UNIQUE REFERENCES user_account (id)
 );
 
-CREATE TABLE profesional (
+CREATE TABLE professional (
     id BIGSERIAL PRIMARY KEY,
-    nombre VARCHAR(255) NOT NULL,
-    apellido VARCHAR(255) NOT NULL,
-    usuario_id BIGINT NOT NULL UNIQUE REFERENCES usuario (id)
+    first_name VARCHAR(255) NOT NULL,
+    last_name VARCHAR(255) NOT NULL,
+    user_id BIGINT NOT NULL UNIQUE REFERENCES user_account (id)
 );
 
-CREATE TABLE servicio (
+CREATE TABLE service (
     id BIGSERIAL PRIMARY KEY,
-    nombre VARCHAR(255) NOT NULL,
-    duracion_min INTEGER NOT NULL,
-    activo BOOLEAN NOT NULL DEFAULT TRUE
+    name VARCHAR(255) NOT NULL,
+    duration_min INTEGER NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT TRUE
 );
 
-CREATE TABLE profesional_servicio (
-    profesional_id BIGINT NOT NULL REFERENCES profesional (id),
-    servicio_id BIGINT NOT NULL REFERENCES servicio (id),
-    PRIMARY KEY (profesional_id, servicio_id)
+CREATE TABLE professional_service (
+    professional_id BIGINT NOT NULL REFERENCES professional (id),
+    service_id BIGINT NOT NULL REFERENCES service (id),
+    PRIMARY KEY (professional_id, service_id)
 );
 
-CREATE TABLE disponibilidad (
+CREATE TABLE availability (
     id BIGSERIAL PRIMARY KEY,
-    profesional_id BIGINT NOT NULL REFERENCES profesional (id),
-    dia_semana VARCHAR(20) NOT NULL CHECK (
-        dia_semana IN ('LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO', 'DOMINGO')
+    professional_id BIGINT NOT NULL REFERENCES professional (id),
+    day_of_week VARCHAR(20) NOT NULL CHECK (
+        day_of_week IN ('MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY')
     ),
-    hora_inicio TIME NOT NULL,
-    hora_fin TIME NOT NULL
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL
 );
 
-CREATE TABLE turno (
+CREATE TABLE appointment (
     id BIGSERIAL PRIMARY KEY,
-    paciente_id BIGINT NOT NULL REFERENCES paciente (id),
-    profesional_id BIGINT NOT NULL REFERENCES profesional (id),
-    servicio_id BIGINT NOT NULL REFERENCES servicio (id),
-    fecha_hora TIMESTAMP NOT NULL,
-    estado VARCHAR(20) NOT NULL CHECK (
-        estado IN ('RESERVADO', 'CONFIRMADO', 'CANCELADO', 'COMPLETADO', 'AUSENTE')
+    patient_id BIGINT NOT NULL REFERENCES patient (id),
+    professional_id BIGINT NOT NULL REFERENCES professional (id),
+    service_id BIGINT NOT NULL REFERENCES service (id),
+    date_time TIMESTAMP NOT NULL,
+    status VARCHAR(20) NOT NULL CHECK (
+        status IN ('BOOKED', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'NO_SHOW')
     )
 );
 
-CREATE INDEX idx_disponibilidad_profesional ON disponibilidad (profesional_id);
-CREATE INDEX idx_turno_profesional ON turno (profesional_id);
-CREATE INDEX idx_turno_paciente ON turno (paciente_id);
-CREATE INDEX idx_turno_fecha_hora ON turno (fecha_hora);
+CREATE INDEX idx_availability_professional ON availability (professional_id);
+CREATE INDEX idx_appointment_professional ON appointment (professional_id);
+CREATE INDEX idx_appointment_patient ON appointment (patient_id);
+CREATE INDEX idx_appointment_date_time ON appointment (date_time);

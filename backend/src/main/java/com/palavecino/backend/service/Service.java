@@ -8,7 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "servicio")
+@Table(name = "service")
 public class Service {
 
     @Id
@@ -18,7 +18,7 @@ public class Service {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
+    @Column(name = "duration_min", nullable = false)
     private int durationMinutes;
 
     @Column(nullable = false)

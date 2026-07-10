@@ -17,7 +17,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "profesional")
+@Table(name = "professional")
 public class Professional {
 
     @Id
@@ -31,14 +31,14 @@ public class Professional {
     private String lastName;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "usuario_id", nullable = false, unique = true)
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
-            name = "profesional_servicio",
-            joinColumns = @JoinColumn(name = "profesional_id"),
-            inverseJoinColumns = @JoinColumn(name = "servicio_id")
+            name = "professional_service",
+            joinColumns = @JoinColumn(name = "professional_id"),
+            inverseJoinColumns = @JoinColumn(name = "service_id")
     )
     private Set<Service> services = new HashSet<>();
 

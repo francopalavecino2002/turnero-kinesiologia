@@ -15,7 +15,7 @@ import jakarta.persistence.Table;
 import java.time.LocalTime;
 
 @Entity
-@Table(name = "disponibilidad")
+@Table(name = "availability")
 public class Availability {
 
     @Id
@@ -23,7 +23,7 @@ public class Availability {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "profesional_id", nullable = false)
+    @JoinColumn(name = "professional_id", nullable = false)
     private Professional professional;
 
     @Enumerated(EnumType.STRING)
