@@ -4,6 +4,7 @@ import com.palavecino.backend.patient.Patient;
 import com.palavecino.backend.professional.Professional;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -23,6 +24,15 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("rangeEnd") LocalDateTime rangeEnd);
 
     List<Appointment> findByPatient(Patient patient);
+
+    @Query("""
+            SELECT a FROM Appointment a
+            JOIN FETCH a.patient
+            JOIN FETCH a.professional
+            JOIN FETCH a.service
+            WHERE a.id = :id
+            """)
+    Optional<Appointment> findByIdWithDetails(@Param("id") Long id);
 
     @Query("""
             SELECT a FROM Appointment a
