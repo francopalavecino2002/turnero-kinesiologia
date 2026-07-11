@@ -3,9 +3,11 @@ package com.palavecino.backend.appointment;
 import com.palavecino.backend.appointment.dto.AppointmentMapper;
 import com.palavecino.backend.appointment.dto.AppointmentResponse;
 import com.palavecino.backend.appointment.dto.AvailableSlotResponse;
+import com.palavecino.backend.appointment.dto.CreateAppointmentRequest;
 import com.palavecino.backend.availability.Availability;
 import com.palavecino.backend.availability.AvailabilityRepository;
 import com.palavecino.backend.exception.BusinessRuleViolationException;
+import com.palavecino.backend.exception.ConflictException;
 import com.palavecino.backend.exception.ResourceNotFoundException;
 import com.palavecino.backend.patient.Patient;
 import com.palavecino.backend.patient.PatientRepository;
@@ -138,6 +140,71 @@ public class AppointmentService {
         }
 
         return slots;
+    }
+
+    public AppointmentResponse findById(Long id) {
+        Appointment appointment = appointmentRepository.findByIdWithDetails(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Appointment not found with id " + id));
+        return AppointmentMapper.toResponse(appointment);
+    }
+
+    @Transactional
+    public AppointmentResponse bookAppointment(CreateAppointmentRequest request) {
+        Patient patient = patientRepository.findById(request.patientId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Patient not found with id " + request.patientId()));
+
+        Professional professional = professionalRepository.findById(request.professionalId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Professional not found with id " + request.professionalId()));
+
+        Service service = serviceRepository.findById(request.serviceId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Service not found with id " + request.serviceId()));
+
+        if (!professional.getServices().contains(service)) {
+            throw new BusinessRuleViolationException(
+                    "Professional " + professional.getFirstName() + " " + professional.getLastName()
+                            + " does not offer service " + service.getName());
+        }
+
+        LocalDateTime dateTime = request.dateTime();
+        LocalDateTime rangeEnd = dateTime.plusMinutes(service.getDurationMinutes());
+
+        com.palavecino.backend.availability.DayOfWeek dayOfWeek = toDayOfWeek(dateTime.toLocalDate());
+        List<Availability> availabilities = availabilityRepository.findByProfessionalAndDayOfWeek(
+                professional, dayOfWeek);
+
+        boolean fitsWithinAvailability = availabilities.stream().anyMatch(availability ->
+                !dateTime.toLocalTime().isBefore(availability.getStartTime())
+                        && !rangeEnd.toLocalTime().isAfter(availability.getEndTime()));
+
+        if (!fitsWithinAvailability) {
+            throw new BusinessRuleViolationException(
+                    "Requested time " + dateTime + " is outside " + professional.getFirstName() + " "
+                            + professional.getLastName() + "'s availability");
+        }
+
+        boolean professionalBusy = !appointmentRepository
+                .findOverlappingByProfessional(professional, dateTime, rangeEnd)
+                .isEmpty();
+        if (professionalBusy) {
+            throw new ConflictException(
+                    "Professional " + professional.getFirstName() + " " + professional.getLastName()
+                            + " already has an appointment overlapping " + dateTime);
+        }
+
+        boolean capacityFull = appointmentRepository.countOverlappingActive(dateTime, rangeEnd)
+                >= maxConcurrentAppointments;
+        if (capacityFull) {
+            throw new ConflictException("No capacity available at " + dateTime);
+        }
+
+        Appointment appointment = new Appointment(patient, professional, service, dateTime, AppointmentStatus.BOOKED);
+        appointment = appointmentRepository.save(appointment);
+
+        return AppointmentMapper.toResponse(appointmentRepository.findByIdWithDetails(appointment.getId())
+                .orElseThrow());
     }
 
     private com.palavecino.backend.availability.DayOfWeek toDayOfWeek(LocalDate date) {
