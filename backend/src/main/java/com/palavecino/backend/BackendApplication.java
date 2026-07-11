@@ -1,7 +1,10 @@
 package com.palavecino.backend;
 
+import java.time.Clock;
+import java.time.ZoneId;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
 
 @SpringBootApplication
 public class BackendApplication {
@@ -13,6 +16,11 @@ public class BackendApplication {
 		// so it must be a name Postgres accepts, set before any datasource is created.
 		System.setProperty("user.timezone", "America/Argentina/Buenos_Aires");
 		SpringApplication.run(BackendApplication.class, args);
+	}
+
+	@Bean
+	Clock clock() {
+		return Clock.system(ZoneId.of("America/Argentina/Buenos_Aires"));
 	}
 
 }

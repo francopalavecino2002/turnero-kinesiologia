@@ -1,6 +1,7 @@
 package com.palavecino.backend.appointment;
 
 import com.palavecino.backend.appointment.dto.AppointmentResponse;
+import com.palavecino.backend.appointment.dto.AvailableSlotResponse;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -36,5 +37,13 @@ public class AppointmentController {
     public ResponseEntity<List<AppointmentResponse>> getByDate(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return ResponseEntity.ok(appointmentService.findAllByDate(date));
+    }
+
+    @GetMapping("/available-slots")
+    public ResponseEntity<List<AvailableSlotResponse>> getAvailableSlots(
+            @RequestParam Long professionalId,
+            @RequestParam Long serviceId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ResponseEntity.ok(appointmentService.findAvailableSlots(professionalId, serviceId, date));
     }
 }

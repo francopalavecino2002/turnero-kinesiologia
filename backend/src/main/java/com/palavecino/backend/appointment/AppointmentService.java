@@ -2,31 +2,52 @@ package com.palavecino.backend.appointment;
 
 import com.palavecino.backend.appointment.dto.AppointmentMapper;
 import com.palavecino.backend.appointment.dto.AppointmentResponse;
+import com.palavecino.backend.appointment.dto.AvailableSlotResponse;
+import com.palavecino.backend.availability.Availability;
+import com.palavecino.backend.availability.AvailabilityRepository;
+import com.palavecino.backend.exception.BusinessRuleViolationException;
 import com.palavecino.backend.exception.ResourceNotFoundException;
 import com.palavecino.backend.patient.Patient;
 import com.palavecino.backend.patient.PatientRepository;
 import com.palavecino.backend.professional.Professional;
 import com.palavecino.backend.professional.ProfessionalRepository;
+import com.palavecino.backend.service.Service;
+import com.palavecino.backend.service.ServiceRepository;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
-import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.transaction.annotation.Transactional;
 
-@Service
+@org.springframework.stereotype.Service
 @Transactional(readOnly = true)
 public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
     private final ProfessionalRepository professionalRepository;
     private final PatientRepository patientRepository;
+    private final ServiceRepository serviceRepository;
+    private final AvailabilityRepository availabilityRepository;
+    private final Clock clock;
+    private final int maxConcurrentAppointments;
 
     public AppointmentService(AppointmentRepository appointmentRepository,
                                ProfessionalRepository professionalRepository,
-                               PatientRepository patientRepository) {
+                               PatientRepository patientRepository,
+                               ServiceRepository serviceRepository,
+                               AvailabilityRepository availabilityRepository,
+                               Clock clock,
+                               @Value("${clinic.max-concurrent-appointments}") int maxConcurrentAppointments) {
         this.appointmentRepository = appointmentRepository;
         this.professionalRepository = professionalRepository;
         this.patientRepository = patientRepository;
+        this.serviceRepository = serviceRepository;
+        this.availabilityRepository = availabilityRepository;
+        this.clock = clock;
+        this.maxConcurrentAppointments = maxConcurrentAppointments;
     }
 
     public List<AppointmentResponse> findByProfessionalAndDate(Long professionalId, LocalDate date) {
@@ -59,5 +80,75 @@ public class AppointmentService {
         return appointmentRepository.findAllByDate(dayStart, dayEnd).stream()
                 .map(AppointmentMapper::toResponse)
                 .toList();
+    }
+
+    public List<AvailableSlotResponse> findAvailableSlots(Long professionalId, Long serviceId, LocalDate date) {
+        Professional professional = professionalRepository.findById(professionalId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Professional not found with id " + professionalId));
+
+        Service service = serviceRepository.findById(serviceId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Service not found with id " + serviceId));
+
+        if (!professional.getServices().contains(service)) {
+            throw new BusinessRuleViolationException(
+                    "Professional " + professional.getFirstName() + " " + professional.getLastName()
+                            + " does not offer service " + service.getName());
+        }
+
+        com.palavecino.backend.availability.DayOfWeek dayOfWeek = toDayOfWeek(date);
+        List<Availability> availabilities = availabilityRepository.findByProfessionalAndDayOfWeek(
+                professional, dayOfWeek);
+
+        if (availabilities.isEmpty()) {
+            return List.of();
+        }
+
+        List<AvailableSlotResponse> slots = new ArrayList<>();
+
+        for (Availability availability : availabilities) {
+            LocalTime slotStart = availability.getStartTime();
+            LocalTime availabilityEnd = availability.getEndTime();
+            int durationMinutes = service.getDurationMinutes();
+
+            while (slotStart.plusMinutes(durationMinutes).isBefore(availabilityEnd)
+                    || slotStart.plusMinutes(durationMinutes).equals(availabilityEnd)) {
+                LocalTime slotEnd = slotStart.plusMinutes(durationMinutes);
+                LocalDateTime rangeStart = LocalDateTime.of(date, slotStart);
+                LocalDateTime rangeEnd = LocalDateTime.of(date, slotEnd);
+
+                boolean professionalBusy = !appointmentRepository
+                        .findOverlappingByProfessional(professional, rangeStart, rangeEnd)
+                        .isEmpty();
+                boolean capacityFull = appointmentRepository
+                        .countOverlappingActive(rangeStart, rangeEnd) >= maxConcurrentAppointments;
+
+                if (!professionalBusy && !capacityFull) {
+                    slots.add(new AvailableSlotResponse(rangeStart, rangeEnd));
+                }
+
+                slotStart = slotEnd;
+            }
+        }
+
+        if (date.equals(LocalDate.now(clock))) {
+            LocalDateTime now = LocalDateTime.now(clock);
+            slots.removeIf(slot -> slot.startTime().isBefore(now));
+        }
+
+        return slots;
+    }
+
+    private com.palavecino.backend.availability.DayOfWeek toDayOfWeek(LocalDate date) {
+        return switch (date.getDayOfWeek()) {
+            case MONDAY -> com.palavecino.backend.availability.DayOfWeek.MONDAY;
+            case TUESDAY -> com.palavecino.backend.availability.DayOfWeek.TUESDAY;
+            case WEDNESDAY -> com.palavecino.backend.availability.DayOfWeek.WEDNESDAY;
+            case THURSDAY -> com.palavecino.backend.availability.DayOfWeek.THURSDAY;
+            case FRIDAY -> com.palavecino.backend.availability.DayOfWeek.FRIDAY;
+            case SATURDAY -> com.palavecino.backend.availability.DayOfWeek.SATURDAY;
+            case SUNDAY -> com.palavecino.backend.availability.DayOfWeek.SUNDAY;
+        };
     }
 }
