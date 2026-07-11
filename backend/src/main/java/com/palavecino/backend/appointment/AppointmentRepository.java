@@ -15,7 +15,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             WHERE a.professional = :professional
               AND a.status <> com.palavecino.backend.appointment.AppointmentStatus.CANCELLED
               AND a.dateTime < :rangeEnd
-              AND FUNCTION('TIMESTAMPADD', 'MINUTE', a.service.durationMinutes, a.dateTime) > :rangeStart
+              AND timestampadd(MINUTE, a.service.durationMinutes, a.dateTime) > :rangeStart
             """)
     List<Appointment> findOverlappingByProfessional(
             @Param("professional") Professional professional,
@@ -26,9 +26,45 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     @Query("""
             SELECT a FROM Appointment a
+            JOIN FETCH a.patient
+            JOIN FETCH a.professional
+            JOIN FETCH a.service
+            WHERE a.professional = :professional
+              AND a.dateTime >= :dayStart AND a.dateTime < :dayEnd
+            ORDER BY a.dateTime
+            """)
+    List<Appointment> findByProfessionalAndDate(
+            @Param("professional") Professional professional,
+            @Param("dayStart") LocalDateTime dayStart,
+            @Param("dayEnd") LocalDateTime dayEnd);
+
+    @Query("""
+            SELECT a FROM Appointment a
+            JOIN FETCH a.patient
+            JOIN FETCH a.professional
+            JOIN FETCH a.service
+            WHERE a.patient = :patient
+            ORDER BY a.dateTime
+            """)
+    List<Appointment> findByPatientWithDetails(@Param("patient") Patient patient);
+
+    @Query("""
+            SELECT a FROM Appointment a
+            JOIN FETCH a.patient
+            JOIN FETCH a.professional
+            JOIN FETCH a.service
+            WHERE a.dateTime >= :dayStart AND a.dateTime < :dayEnd
+            ORDER BY a.dateTime
+            """)
+    List<Appointment> findAllByDate(
+            @Param("dayStart") LocalDateTime dayStart,
+            @Param("dayEnd") LocalDateTime dayEnd);
+
+    @Query("""
+            SELECT a FROM Appointment a
             WHERE a.status <> com.palavecino.backend.appointment.AppointmentStatus.CANCELLED
               AND a.dateTime < :rangeEnd
-              AND FUNCTION('TIMESTAMPADD', 'MINUTE', a.service.durationMinutes, a.dateTime) > :rangeStart
+              AND timestampadd(MINUTE, a.service.durationMinutes, a.dateTime) > :rangeStart
             """)
     List<Appointment> findOverlappingAll(
             @Param("rangeStart") LocalDateTime rangeStart,
@@ -41,7 +77,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
                 com.palavecino.backend.appointment.AppointmentStatus.CONFIRMED
             )
               AND a.dateTime < :rangeEnd
-              AND FUNCTION('TIMESTAMPADD', 'MINUTE', a.service.durationMinutes, a.dateTime) > :rangeStart
+              AND timestampadd(MINUTE, a.service.durationMinutes, a.dateTime) > :rangeStart
             """)
     long countOverlappingActive(
             @Param("rangeStart") LocalDateTime rangeStart,
