@@ -60,3 +60,13 @@ _Pendiente de definir._
     configurable a futuro).
   - El turno debe caer dentro de la disponibilidad del profesional.
   - Un profesional solo atiende servicios que ofrece.
+
+  ## Registro y asignación de roles (a implementar en la etapa de seguridad)
+- PACIENTE: registro público abierto. El backend FUERZA el rol PATIENT;
+  el cliente no puede elegir su rol (si lo manda, se ignora).
+- PROFESIONAL: NO hay registro público. Los da de alta el admin desde su
+  panel; el sistema envía invitación o contraseña temporal.
+- ADMIN: se crea "de fábrica" (bootstrap) al desplegar el sistema, fuera
+  del flujo normal. De ahí en adelante, un admin puede crear otros admins.
+- Principio: el registro público solo crea el rol de MENOR privilegio.
+  Los roles con más poder los otorga alguien que ya tiene poder.
