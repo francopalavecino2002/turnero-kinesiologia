@@ -2,6 +2,7 @@ package com.palavecino.backend.appointment;
 
 import com.palavecino.backend.patient.Patient;
 import com.palavecino.backend.professional.Professional;
+import com.palavecino.backend.service.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -92,4 +93,34 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     long countOverlappingActive(
             @Param("rangeStart") LocalDateTime rangeStart,
             @Param("rangeEnd") LocalDateTime rangeEnd);
+
+    @Query("""
+            SELECT a FROM Appointment a
+            WHERE a.service = :service
+              AND a.status IN (
+                  com.palavecino.backend.appointment.AppointmentStatus.BOOKED,
+                  com.palavecino.backend.appointment.AppointmentStatus.CONFIRMED
+              )
+              AND a.dateTime < :rangeEnd
+              AND timestampadd(MINUTE, a.service.durationMinutes, a.dateTime) > :rangeStart
+            """)
+    List<Appointment> findOverlappingActiveByService(
+            @Param("service") Service service,
+            @Param("rangeStart") LocalDateTime rangeStart,
+            @Param("rangeEnd") LocalDateTime rangeEnd);
+
+    @Query("""
+            SELECT COUNT(a) FROM Appointment a
+            WHERE a.service.id NOT IN :excludedServiceIds
+              AND a.status IN (
+                  com.palavecino.backend.appointment.AppointmentStatus.BOOKED,
+                  com.palavecino.backend.appointment.AppointmentStatus.CONFIRMED
+              )
+              AND a.dateTime < :rangeEnd
+              AND timestampadd(MINUTE, a.service.durationMinutes, a.dateTime) > :rangeStart
+            """)
+    long countOverlappingActiveExcludingServices(
+            @Param("rangeStart") LocalDateTime rangeStart,
+            @Param("rangeEnd") LocalDateTime rangeEnd,
+            @Param("excludedServiceIds") List<Long> excludedServiceIds);
 }
