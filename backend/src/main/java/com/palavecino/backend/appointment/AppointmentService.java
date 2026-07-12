@@ -13,6 +13,8 @@ import com.palavecino.backend.patient.Patient;
 import com.palavecino.backend.patient.PatientRepository;
 import com.palavecino.backend.professional.Professional;
 import com.palavecino.backend.professional.ProfessionalRepository;
+import com.palavecino.backend.recurringblock.RecurringBlock;
+import com.palavecino.backend.recurringblock.RecurringBlockRepository;
 import com.palavecino.backend.service.Service;
 import com.palavecino.backend.service.ServiceRepository;
 import java.time.Clock;
@@ -21,6 +23,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +36,7 @@ public class AppointmentService {
     private final PatientRepository patientRepository;
     private final ServiceRepository serviceRepository;
     private final AvailabilityRepository availabilityRepository;
+    private final RecurringBlockRepository recurringBlockRepository;
     private final Clock clock;
     private final int maxConcurrentAppointments;
 
@@ -41,6 +45,7 @@ public class AppointmentService {
                                PatientRepository patientRepository,
                                ServiceRepository serviceRepository,
                                AvailabilityRepository availabilityRepository,
+                               RecurringBlockRepository recurringBlockRepository,
                                Clock clock,
                                @Value("${clinic.max-concurrent-appointments}") int maxConcurrentAppointments) {
         this.appointmentRepository = appointmentRepository;
@@ -48,6 +53,7 @@ public class AppointmentService {
         this.patientRepository = patientRepository;
         this.serviceRepository = serviceRepository;
         this.availabilityRepository = availabilityRepository;
+        this.recurringBlockRepository = recurringBlockRepository;
         this.clock = clock;
         this.maxConcurrentAppointments = maxConcurrentAppointments;
     }
@@ -123,8 +129,7 @@ public class AppointmentService {
                 boolean professionalBusy = !appointmentRepository
                         .findOverlappingByProfessional(professional, rangeStart, rangeEnd)
                         .isEmpty();
-                boolean capacityFull = appointmentRepository
-                        .countOverlappingActive(rangeStart, rangeEnd) >= maxConcurrentAppointments;
+                boolean capacityFull = checkCapacity(dayOfWeek, service, rangeStart, rangeEnd).full();
 
                 if (!professionalBusy && !capacityFull) {
                     slots.add(new AvailableSlotResponse(rangeStart, rangeEnd));
@@ -194,10 +199,13 @@ public class AppointmentService {
                             + " already has an appointment overlapping " + dateTime);
         }
 
-        boolean capacityFull = appointmentRepository.countOverlappingActive(dateTime, rangeEnd)
-                >= maxConcurrentAppointments;
-        if (capacityFull) {
-            throw new ConflictException("No capacity available at " + dateTime);
+        CapacityCheckResult capacity = checkCapacity(dayOfWeek, service, dateTime, rangeEnd);
+        if (capacity.full()) {
+            if (capacity.reservedBlockBox()) {
+                throw new ConflictException(
+                        "The reserved slot for " + service.getName() + " at " + dateTime + " is already taken");
+            }
+            throw new ConflictException("The clinic is at full capacity at " + dateTime);
         }
 
         Appointment appointment = new Appointment(patient, professional, service, dateTime, AppointmentStatus.BOOKED);
@@ -217,5 +225,45 @@ public class AppointmentService {
             case SATURDAY -> com.palavecino.backend.availability.DayOfWeek.SATURDAY;
             case SUNDAY -> com.palavecino.backend.availability.DayOfWeek.SUNDAY;
         };
+    }
+
+    /**
+     * Recurring blocks (e.g. the EMSELLA machine, a professional's fixed weekly slot) permanently
+     * occupy one of the clinic's boxes. Each overlapping active block reduces the general capacity
+     * pool by one - except when the requested service matches a block's own service: that
+     * appointment uses the block's dedicated box instead of competing for general capacity, so it
+     * only needs to check that no other appointment is already occupying that specific box.
+     */
+    private CapacityCheckResult checkCapacity(com.palavecino.backend.availability.DayOfWeek dayOfWeek,
+                                               Service service, LocalDateTime rangeStart, LocalDateTime rangeEnd) {
+        List<RecurringBlock> overlappingBlocks = recurringBlockRepository.findActiveOverlapping(
+                dayOfWeek, rangeStart.toLocalTime(), rangeEnd.toLocalTime());
+
+        boolean matchesBlockService = overlappingBlocks.stream()
+                .anyMatch(block -> block.getService() != null && block.getService().getId().equals(service.getId()));
+
+        if (matchesBlockService) {
+            boolean boxTaken = !appointmentRepository
+                    .findOverlappingActiveByService(service, rangeStart, rangeEnd)
+                    .isEmpty();
+            return new CapacityCheckResult(boxTaken, true);
+        }
+
+        List<Long> blockServiceIds = overlappingBlocks.stream()
+                .map(RecurringBlock::getService)
+                .filter(Objects::nonNull)
+                .map(Service::getId)
+                .distinct()
+                .toList();
+
+        long generalCount = blockServiceIds.isEmpty()
+                ? appointmentRepository.countOverlappingActive(rangeStart, rangeEnd)
+                : appointmentRepository.countOverlappingActiveExcludingServices(rangeStart, rangeEnd, blockServiceIds);
+
+        int effectiveCapacity = maxConcurrentAppointments - overlappingBlocks.size();
+        return new CapacityCheckResult(generalCount >= effectiveCapacity, false);
+    }
+
+    private record CapacityCheckResult(boolean full, boolean reservedBlockBox) {
     }
 }

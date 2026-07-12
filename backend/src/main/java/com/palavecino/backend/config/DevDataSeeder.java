@@ -7,6 +7,8 @@ import com.palavecino.backend.patient.Patient;
 import com.palavecino.backend.patient.PatientRepository;
 import com.palavecino.backend.professional.Professional;
 import com.palavecino.backend.professional.ProfessionalRepository;
+import com.palavecino.backend.recurringblock.RecurringBlock;
+import com.palavecino.backend.recurringblock.RecurringBlockRepository;
 import com.palavecino.backend.service.Service;
 import com.palavecino.backend.service.ServiceRepository;
 import com.palavecino.backend.user.Role;
@@ -37,17 +39,20 @@ public class DevDataSeeder implements CommandLineRunner {
     private final PatientRepository patientRepository;
     private final UserRepository userRepository;
     private final AvailabilityRepository availabilityRepository;
+    private final RecurringBlockRepository recurringBlockRepository;
 
     public DevDataSeeder(ServiceRepository serviceRepository,
                           ProfessionalRepository professionalRepository,
                           PatientRepository patientRepository,
                           UserRepository userRepository,
-                          AvailabilityRepository availabilityRepository) {
+                          AvailabilityRepository availabilityRepository,
+                          RecurringBlockRepository recurringBlockRepository) {
         this.serviceRepository = serviceRepository;
         this.professionalRepository = professionalRepository;
         this.patientRepository = patientRepository;
         this.userRepository = userRepository;
         this.availabilityRepository = availabilityRepository;
+        this.recurringBlockRepository = recurringBlockRepository;
     }
 
     @Override
@@ -58,6 +63,11 @@ public class DevDataSeeder implements CommandLineRunner {
         }
 
         Map<String, Service> services = seedServices();
+        Professional alejandra = seedProfessional("Alejandra", "González", "alejandra.gonzalez@equi.dev",
+                services.get("Reeducación Postural (RPG)"),
+                List.of(
+                        new AvailabilityWindow(DayOfWeek.SATURDAY, LocalTime.of(11, 0), LocalTime.of(15, 0))
+                ));
         seedProfessional("Marcela", "Altamirano", "marcela.altamirano@equi.dev",
                 services.get("Deporte y Traumatología"),
                 List.of(
@@ -76,11 +86,6 @@ public class DevDataSeeder implements CommandLineRunner {
                         new AvailabilityWindow(DayOfWeek.WEDNESDAY, LocalTime.of(14, 0), LocalTime.of(20, 0)),
                         new AvailabilityWindow(DayOfWeek.THURSDAY, LocalTime.of(14, 0), LocalTime.of(20, 0)),
                         new AvailabilityWindow(DayOfWeek.FRIDAY, LocalTime.of(14, 0), LocalTime.of(20, 0))
-                ));
-        seedProfessional("Alejandra", "González", "alejandra.gonzalez@equi.dev",
-                services.get("Reeducación Postural (RPG)"),
-                List.of(
-                        new AvailabilityWindow(DayOfWeek.SATURDAY, LocalTime.of(11, 0), LocalTime.of(15, 0))
                 ));
         seedProfessional("Delia", "Furlán", "delia.furlan@equi.dev",
                 services.get("Drenaje Linfático y Reflexología"),
@@ -103,6 +108,8 @@ public class DevDataSeeder implements CommandLineRunner {
 
         seedPatient("Juan", "Pérez", "3511111111", "juan.perez@example.com");
         seedPatient("María", "Gómez", "3512222222", "maria.gomez@example.com");
+
+        seedRecurringBlocks(services.get("EMSELLA"), alejandra);
     }
 
     private Map<String, Service> seedServices() {
@@ -110,19 +117,20 @@ public class DevDataSeeder implements CommandLineRunner {
         Service rpg = serviceRepository.save(new Service("Reeducación Postural (RPG)", 60, true));
         Service drenaje = serviceRepository.save(new Service("Drenaje Linfático y Reflexología", 60, true));
         Service pisoPelvico = serviceRepository.save(new Service("Rehabilitación Piso Pélvico", 60, true));
-        serviceRepository.save(new Service("EMSELLA", 30, true));
+        Service emsella = serviceRepository.save(new Service("EMSELLA", 30, true));
         serviceRepository.save(new Service("Alquiler de Magnetoterapia", 60, true));
 
         return Map.of(
                 "Deporte y Traumatología", deporteTraumatologia,
                 "Reeducación Postural (RPG)", rpg,
                 "Drenaje Linfático y Reflexología", drenaje,
-                "Rehabilitación Piso Pélvico", pisoPelvico
+                "Rehabilitación Piso Pélvico", pisoPelvico,
+                "EMSELLA", emsella
         );
     }
 
-    private void seedProfessional(String firstName, String lastName, String email, Service service,
-                                   List<AvailabilityWindow> windows) {
+    private Professional seedProfessional(String firstName, String lastName, String email, Service service,
+                                           List<AvailabilityWindow> windows) {
         User user = userRepository.save(new User(email, PLACEHOLDER_PASSWORD, Role.PROFESSIONAL, true));
         Professional professional = new Professional(firstName, lastName, user);
         professional.getServices().add(service);
@@ -131,6 +139,17 @@ public class DevDataSeeder implements CommandLineRunner {
         for (AvailabilityWindow window : windows) {
             availabilityRepository.save(new Availability(professional, window.dayOfWeek(), window.start(), window.end()));
         }
+
+        return professional;
+    }
+
+    private void seedRecurringBlocks(Service emsella, Professional alejandra) {
+        recurringBlockRepository.save(new RecurringBlock(DayOfWeek.MONDAY, LocalTime.of(16, 0), LocalTime.of(19, 30),
+                emsella, null, true, "EMSELLA - box reservado para el equipo"));
+        recurringBlockRepository.save(new RecurringBlock(DayOfWeek.THURSDAY, LocalTime.of(16, 0), LocalTime.of(19, 30),
+                emsella, null, true, "EMSELLA - box reservado para el equipo"));
+        recurringBlockRepository.save(new RecurringBlock(DayOfWeek.SATURDAY, LocalTime.of(11, 0), LocalTime.of(15, 0),
+                null, alejandra, true, "RPG - Alejandra González (bloqueo semanal de box)"));
     }
 
     private void seedPatient(String firstName, String lastName, String phone, String email) {
