@@ -21,3 +21,16 @@ spring:
 
 clinic:
   max-concurrent-appointments: 2
+
+jwt:
+  # Dev-only fallback so a local `./mvnw spring-boot:run` works without extra setup. In any
+  # non-dev profile this MUST be overridden via the JWT_SECRET env var - see SecurityConfig /
+  # JwtService, which fail fast rather than silently signing tokens with a guessable secret.
+  secret: ${JWT_SECRET:dev-only-insecure-secret-do-not-use-in-production-min-32-bytes}
+  expiration-ms: 86400000
+
+admin:
+  # Bootstrap admin credentials. Outside the dev profile these have no default: the app refuses
+  # to start rather than risk a known admin password reaching production. See AdminBootstrapRunner.
+  email: ${ADMIN_EMAIL:}
+  password: ${ADMIN_PASSWORD:}
