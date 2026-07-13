@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Component
 @Profile("dev")
+@Order(1)
 public class DevDataSeeder implements CommandLineRunner {
 
     private static final String PLACEHOLDER_PASSWORD = "changeme123";
@@ -40,19 +43,22 @@ public class DevDataSeeder implements CommandLineRunner {
     private final UserRepository userRepository;
     private final AvailabilityRepository availabilityRepository;
     private final RecurringBlockRepository recurringBlockRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public DevDataSeeder(ServiceRepository serviceRepository,
                           ProfessionalRepository professionalRepository,
                           PatientRepository patientRepository,
                           UserRepository userRepository,
                           AvailabilityRepository availabilityRepository,
-                          RecurringBlockRepository recurringBlockRepository) {
+                          RecurringBlockRepository recurringBlockRepository,
+                          PasswordEncoder passwordEncoder) {
         this.serviceRepository = serviceRepository;
         this.professionalRepository = professionalRepository;
         this.patientRepository = patientRepository;
         this.userRepository = userRepository;
         this.availabilityRepository = availabilityRepository;
         this.recurringBlockRepository = recurringBlockRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -131,7 +137,7 @@ public class DevDataSeeder implements CommandLineRunner {
 
     private Professional seedProfessional(String firstName, String lastName, String email, Service service,
                                            List<AvailabilityWindow> windows) {
-        User user = userRepository.save(new User(email, PLACEHOLDER_PASSWORD, Role.PROFESSIONAL, true));
+        User user = userRepository.save(new User(email, passwordEncoder.encode(PLACEHOLDER_PASSWORD), Role.PROFESSIONAL, true));
         Professional professional = new Professional(firstName, lastName, user);
         professional.getServices().add(service);
         professional = professionalRepository.save(professional);
@@ -153,7 +159,7 @@ public class DevDataSeeder implements CommandLineRunner {
     }
 
     private void seedPatient(String firstName, String lastName, String phone, String email) {
-        User user = userRepository.save(new User(email, PLACEHOLDER_PASSWORD, Role.PATIENT, true));
+        User user = userRepository.save(new User(email, passwordEncoder.encode(PLACEHOLDER_PASSWORD), Role.PATIENT, true));
         patientRepository.save(new Patient(firstName, lastName, phone, user));
     }
 

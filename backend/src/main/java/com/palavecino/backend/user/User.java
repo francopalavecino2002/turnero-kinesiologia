@@ -30,14 +30,22 @@ public class User {
     @Column(nullable = false)
     private boolean active;
 
+    @Column(name = "must_change_password", nullable = false)
+    private boolean mustChangePassword;
+
     protected User() {
     }
 
     public User(String email, String password, Role role, boolean active) {
+        this(email, password, role, active, false);
+    }
+
+    public User(String email, String password, Role role, boolean active, boolean mustChangePassword) {
         this.email = email;
         this.password = password;
         this.role = role;
         this.active = active;
+        this.mustChangePassword = mustChangePassword;
     }
 
     public Long getId() {
@@ -74,5 +82,13 @@ public class User {
 
     public void setActive(boolean active) {
         this.active = active;
+    }
+
+    public boolean isMustChangePassword() {
+        return mustChangePassword;
+    }
+
+    public void setMustChangePassword(boolean mustChangePassword) {
+        this.mustChangePassword = mustChangePassword;
     }
 }

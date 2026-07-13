@@ -32,14 +32,22 @@ public class Patient {
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
+    @Column(name = "notifications_enabled", nullable = false)
+    private boolean notificationsEnabled;
+
     protected Patient() {
     }
 
     public Patient(String firstName, String lastName, String phone, User user) {
+        this(firstName, lastName, phone, user, true);
+    }
+
+    public Patient(String firstName, String lastName, String phone, User user, boolean notificationsEnabled) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.phone = phone;
         this.user = user;
+        this.notificationsEnabled = notificationsEnabled;
     }
 
     public Long getId() {
@@ -76,5 +84,13 @@ public class Patient {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public boolean isNotificationsEnabled() {
+        return notificationsEnabled;
+    }
+
+    public void setNotificationsEnabled(boolean notificationsEnabled) {
+        this.notificationsEnabled = notificationsEnabled;
     }
 }
