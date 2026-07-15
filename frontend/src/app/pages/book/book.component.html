@@ -1,0 +1,171 @@
+<div class="book eqi-page">
+  @if (view() === 'wizard') {
+    <h1 class="book__title eqi-heading">Reservar turno</h1>
+
+    <mat-stepper [linear]="true" [selectedIndex]="selectedIndex()" orientation="horizontal" class="book__stepper">
+      <!-- Step 1: service -->
+      <mat-step [completed]="!!selectedService()" label="Servicio">
+        @if (loadingServices()) {
+          <div class="book__loading">
+            <mat-spinner diameter="32" />
+            <span>Cargando servicios...</span>
+          </div>
+        } @else if (servicesError()) {
+          <p class="book__error">No pudimos cargar los servicios. Intentá nuevamente más tarde.</p>
+        } @else {
+          <div class="book__cards">
+            @for (service of services(); track service.id) {
+              <button
+                type="button"
+                class="eqi-card book__option"
+                [class.eqi-card--selected]="selectedService()?.id === service.id"
+                (click)="selectService(service)"
+              >
+                <span class="book__option-name">{{ service.name }}</span>
+                <span class="book__option-meta">{{ service.name }} · {{ service.durationMinutes }} min</span>
+              </button>
+            }
+          </div>
+
+          @if (noProfessionalsForService()) {
+            <p class="book__notice">
+              Este servicio todavía no está disponible para reservar online. Por favor comunicate con el
+              consultorio.
+            </p>
+          }
+        }
+      </mat-step>
+
+      <!-- Step 2: professional (only rendered when there is more than one candidate) -->
+      @if (needsProfessionalStep()) {
+        <mat-step [completed]="!!selectedProfessional()" label="Profesional">
+          @if (loadingProfessionals()) {
+            <div class="book__loading">
+              <mat-spinner diameter="32" />
+              <span>Cargando profesionales...</span>
+            </div>
+          } @else {
+            <div class="book__cards">
+              @for (professional of professionals(); track professional.id) {
+                <button
+                  type="button"
+                  class="eqi-card book__option"
+                  [class.eqi-card--selected]="selectedProfessional()?.id === professional.id"
+                  (click)="selectProfessional(professional)"
+                >
+                  <span class="book__option-name">{{ professional.firstName }} {{ professional.lastName }}</span>
+                </button>
+              }
+            </div>
+          }
+        </mat-step>
+      }
+
+      <!-- Step 3: date -->
+      <mat-step [completed]="dateChosen()" label="Fecha">
+        @if (selectedProfessional()) {
+          <p class="book__subtitle">
+            Turno con <strong>{{ selectedProfessional()?.firstName }} {{ selectedProfessional()?.lastName }}</strong>
+          </p>
+        }
+        <mat-form-field class="book__date-field">
+          <mat-label>Elegí una fecha</mat-label>
+          <input
+            matInput
+            [matDatepicker]="picker"
+            [formControl]="dateControl"
+            [min]="minDate"
+            (dateChange)="onDateSelected($event.value)"
+          />
+          <mat-datepicker-toggle matIconSuffix [for]="picker" />
+          <mat-datepicker #picker />
+        </mat-form-field>
+      </mat-step>
+
+      <!-- Step 4: time slot -->
+      <mat-step [completed]="!!selectedSlot()" label="Horario">
+        @if (selectedProfessional()) {
+          <p class="book__subtitle">
+            Turno con <strong>{{ selectedProfessional()?.firstName }} {{ selectedProfessional()?.lastName }}</strong>
+            el {{ dateControl.value | date: 'dd/MM/yyyy' }}
+          </p>
+        }
+
+        @if (loadingSlots()) {
+          <div class="book__loading">
+            <mat-spinner diameter="32" />
+            <span>Buscando horarios disponibles...</span>
+          </div>
+        } @else if (slotsError()) {
+          <p class="book__error">No pudimos cargar los horarios. Intentá nuevamente.</p>
+        } @else if (slots().length === 0) {
+          <p class="book__notice">No hay horarios disponibles para este día.</p>
+        } @else {
+          <mat-chip-listbox class="book__slots" aria-label="Horarios disponibles">
+            @for (slot of slots(); track slot.startTime) {
+              <mat-chip-option
+                [selected]="selectedSlot()?.startTime === slot.startTime"
+                (click)="selectSlot(slot)"
+              >
+                {{ slot.startTime | date: 'HH:mm' }}
+              </mat-chip-option>
+            }
+          </mat-chip-listbox>
+        }
+      </mat-step>
+    </mat-stepper>
+  }
+
+  @if (view() === 'confirm') {
+    <div class="book__summary eqi-card">
+      <h2 class="eqi-heading">Confirmá tu turno</h2>
+      <dl class="book__summary-list">
+        <dt>Servicio</dt>
+        <dd>{{ selectedService()?.name }}</dd>
+        <dt>Profesional</dt>
+        <dd>{{ selectedProfessional()?.firstName }} {{ selectedProfessional()?.lastName }}</dd>
+        <dt>Fecha</dt>
+        <dd>{{ dateControl.value | date: 'dd/MM/yyyy' }}</dd>
+        <dt>Horario</dt>
+        <dd>{{ selectedSlot()?.startTime | date: 'HH:mm' }}</dd>
+      </dl>
+
+      @if (bookingError()) {
+        <p class="book__error">{{ bookingError() }}</p>
+      }
+
+      <div class="book__actions">
+        <button mat-stroked-button type="button" (click)="backToSlots()" [disabled]="booking()">Volver</button>
+        <button mat-flat-button color="primary" type="button" (click)="confirmBooking()" [disabled]="booking()">
+          @if (booking()) {
+            <mat-spinner diameter="20" />
+          } @else {
+            Confirmar turno
+          }
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (view() === 'success' && bookingResult(); as appointment) {
+    <div class="book__summary eqi-card">
+      <h2 class="eqi-heading">Tu turno quedó reservado</h2>
+      <dl class="book__summary-list">
+        <dt>Servicio</dt>
+        <dd>{{ appointment.serviceName }}</dd>
+        <dt>Profesional</dt>
+        <dd>{{ appointment.professionalFirstName }} {{ appointment.professionalLastName }}</dd>
+        <dt>Fecha y horario</dt>
+        <dd>{{ appointment.dateTime | date: 'dd/MM/yyyy HH:mm' }}</dd>
+      </dl>
+
+      <!-- TODO: actual notification sending (email/WhatsApp) is not implemented yet; this is just a heads-up message. -->
+      <p class="book__notice">Te enviaremos un recordatorio por email y WhatsApp.</p>
+
+      <div class="book__actions">
+        <button mat-stroked-button type="button" (click)="bookAnother()">Reservar otro turno</button>
+        <button mat-flat-button color="primary" type="button" (click)="goToMyAppointments()">Ver mis turnos</button>
+      </div>
+    </div>
+  }
+</div>

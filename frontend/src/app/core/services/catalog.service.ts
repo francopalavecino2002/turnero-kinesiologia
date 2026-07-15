@@ -15,4 +15,8 @@ export class CatalogService {
   getProfessionals(): Observable<Professional[]> {
     return this.http.get<Professional[]>(`${environment.apiUrl}/professionals`);
   }
+
+  getProfessionalsForService(serviceId: number): Observable<Professional[]> {
+    return this.http.get<Professional[]>(`${environment.apiUrl}/services/${serviceId}/professionals`);
+  }
 }
