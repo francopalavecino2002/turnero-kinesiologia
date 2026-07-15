@@ -5,15 +5,26 @@
 // custom components at https://material.angular.dev/guide/theming
 @use '@angular/material' as mat;
 
+// eQi brand tokens, extracted from the brand board at
+// frontend/src/assets/EQI - MARCA/BRANDBOARD-03.jpg
+:root {
+  --eqi-primary: #367079;
+  --eqi-primary-light: #acc9cc;
+  --eqi-gray: #d6d6d6;
+  --eqi-gray-light: #eaeaea;
+  --eqi-font-body: 'Montserrat', sans-serif;
+  --eqi-font-display: 'Quileny', serif;
+}
+
 html {
   height: 100%;
   @include mat.theme(
     (
       color: (
-        primary: mat.$azure-palette,
+        primary: mat.$cyan-palette,
         tertiary: mat.$blue-palette,
       ),
-      typography: Roboto,
+      typography: Montserrat,
       density: 0,
     )
   );
@@ -31,9 +42,31 @@ body {
   background-color: var(--mat-sys-surface);
   color: var(--mat-sys-on-surface);
   font: var(--mat-sys-body-medium);
+  font-family: var(--eqi-font-body);
 
   // Reset the user agent margin.
   margin: 0;
   height: 100%;
+}
+
+// eQi utility classes shared across pages
+.eqi-page {
+  font-family: var(--eqi-font-body);
+}
+
+.eqi-heading {
+  font-family: var(--eqi-font-display);
+  color: var(--eqi-primary);
+}
+
+.eqi-card {
+  border: 1px solid var(--eqi-gray);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.eqi-card--selected {
+  border-color: var(--eqi-primary);
+  background: color-mix(in srgb, var(--eqi-primary-light) 25%, white);
 }
 /* You can add global styles to this file, and also import other style files */
