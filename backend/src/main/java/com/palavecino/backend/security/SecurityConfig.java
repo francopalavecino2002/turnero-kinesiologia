@@ -2,6 +2,7 @@ package com.palavecino.backend.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -9,8 +10,11 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
- * This is the authentication half of the security layer only. Authorization (role-based endpoint
- * protection) lands in a separate branch - existing business endpoints stay open here.
+ * Authentication (who are you) is enforced here at the filter-chain level: deny-by-default via
+ * anyRequest().authenticated(), with a short explicit allow-list of genuinely public endpoints.
+ * Authorization (what are you allowed to do) is enforced with @PreAuthorize on controller methods
+ * for role checks, and with explicit ownership checks inside the service layer for per-resource
+ * IDOR protection (a role check alone can't know whether appointment #42 belongs to the caller).
  *
  * CSRF is disabled because CSRF protection defends session-cookie-based auth, where a browser
  * automatically attaches credentials to any request. This API is stateless and JWT-based: the
@@ -18,15 +22,19 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * credential for a forged cross-site request to ride on.
  */
 @Configuration
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JsonAuthenticationEntryPoint authenticationEntryPoint;
+    private final JsonAccessDeniedHandler accessDeniedHandler;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
-                           JsonAuthenticationEntryPoint authenticationEntryPoint) {
+                           JsonAuthenticationEntryPoint authenticationEntryPoint,
+                           JsonAccessDeniedHandler accessDeniedHandler) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.authenticationEntryPoint = authenticationEntryPoint;
+        this.accessDeniedHandler = accessDeniedHandler;
     }
 
     @Bean
@@ -34,10 +42,13 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .exceptionHandling(handling -> handling.authenticationEntryPoint(authenticationEntryPoint))
+                .exceptionHandling(handling -> handling
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/me", "/api/auth/change-password").authenticated()
-                        .anyRequest().permitAll())
+                        .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
+                        .requestMatchers("/api/appointments/available-slots").permitAll()
+                        .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

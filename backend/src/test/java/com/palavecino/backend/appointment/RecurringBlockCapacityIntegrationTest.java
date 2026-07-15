@@ -14,6 +14,7 @@ import com.palavecino.backend.professional.Professional;
 import com.palavecino.backend.professional.ProfessionalRepository;
 import com.palavecino.backend.recurringblock.RecurringBlock;
 import com.palavecino.backend.recurringblock.RecurringBlockRepository;
+import com.palavecino.backend.security.JwtService;
 import com.palavecino.backend.service.Service;
 import com.palavecino.backend.service.ServiceRepository;
 import com.palavecino.backend.user.Role;
@@ -76,7 +77,10 @@ class RecurringBlockCapacityIntegrationTest {
     @Autowired
     private RecurringBlockRepository recurringBlockRepository;
 
-    private Patient patient;
+    @Autowired
+    private JwtService jwtService;
+
+    private User patientUser;
     private Professional professional1;
     private Professional professional2;
     private Service generalService;
@@ -89,8 +93,8 @@ class RecurringBlockCapacityIntegrationTest {
         generalService = serviceRepository.save(new Service("Deporte y Traumatología", 60, true));
         emsellaService = serviceRepository.save(new Service("EMSELLA", 30, true));
 
-        User patientUser = userRepository.save(new User(unique("patient") + "@example.com", "hash", Role.PATIENT, true));
-        patient = patientRepository.save(new Patient("Maria", "Lopez", "111111", patientUser));
+        patientUser = userRepository.save(new User(unique("patient") + "@example.com", "hash", Role.PATIENT, true));
+        patientRepository.save(new Patient("Maria", "Lopez", "111111", patientUser));
 
         User user1 = userRepository.save(new User(unique("pro1") + "@example.com", "hash", Role.PROFESSIONAL, true));
         professional1 = new Professional("Marcela", "Altamirano", user1);
@@ -129,12 +133,17 @@ class RecurringBlockCapacityIntegrationTest {
         return date;
     }
 
-    private CreateAppointmentRequest request(Long patientId, Long professionalId, Long serviceId, LocalDateTime dateTime) {
-        return new CreateAppointmentRequest(patientId, professionalId, serviceId, dateTime);
+    private String patientToken() {
+        return jwtService.generateToken(patientUser);
+    }
+
+    private CreateAppointmentRequest request(Long professionalId, Long serviceId, LocalDateTime dateTime) {
+        return new CreateAppointmentRequest(professionalId, serviceId, dateTime);
     }
 
     private void book(CreateAppointmentRequest body) throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments")
+                        .header("Authorization", "Bearer " + patientToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(MockMvcResultMatchers.status().isCreated());
@@ -143,9 +152,10 @@ class RecurringBlockCapacityIntegrationTest {
     @Test
     void generalAppointmentAllowedWhenOnlyEmsellaBlockReducesCapacity() throws Exception {
         LocalDateTime dateTime = LocalDateTime.of(mondayDate, LocalTime.of(17, 0));
-        CreateAppointmentRequest body = request(patient.getId(), professional1.getId(), generalService.getId(), dateTime);
+        CreateAppointmentRequest body = request(professional1.getId(), generalService.getId(), dateTime);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments")
+                        .header("Authorization", "Bearer " + patientToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(MockMvcResultMatchers.status().isCreated())
@@ -155,12 +165,12 @@ class RecurringBlockCapacityIntegrationTest {
     @Test
     void secondOverlappingGeneralAppointmentRejectedWhenEffectiveCapacityExhausted() throws Exception {
         LocalDateTime dateTime = LocalDateTime.of(mondayDate, LocalTime.of(17, 0));
-        book(request(patient.getId(), professional1.getId(), generalService.getId(), dateTime));
+        book(request(professional1.getId(), generalService.getId(), dateTime));
 
-        CreateAppointmentRequest secondBody = request(patient.getId(), professional2.getId(),
-                generalService.getId(), dateTime);
+        CreateAppointmentRequest secondBody = request(professional2.getId(), generalService.getId(), dateTime);
 
         String responseJson = mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments")
+                        .header("Authorization", "Bearer " + patientToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(secondBody)))
                 .andExpect(MockMvcResultMatchers.status().isConflict())
@@ -173,13 +183,13 @@ class RecurringBlockCapacityIntegrationTest {
     @Test
     void emsellaAppointmentDoesNotConsumeGeneralCapacity() throws Exception {
         LocalDateTime emsellaStart = LocalDateTime.of(mondayDate, LocalTime.of(17, 0));
-        book(request(patient.getId(), professional1.getId(), emsellaService.getId(), emsellaStart));
+        book(request(professional1.getId(), emsellaService.getId(), emsellaStart));
 
         LocalDateTime generalStart = LocalDateTime.of(mondayDate, LocalTime.of(17, 0));
-        CreateAppointmentRequest generalBody = request(patient.getId(), professional2.getId(),
-                generalService.getId(), generalStart);
+        CreateAppointmentRequest generalBody = request(professional2.getId(), generalService.getId(), generalStart);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments")
+                        .header("Authorization", "Bearer " + patientToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(generalBody)))
                 .andExpect(MockMvcResultMatchers.status().isCreated())
@@ -193,12 +203,12 @@ class RecurringBlockCapacityIntegrationTest {
     @Test
     void secondOverlappingEmsellaAppointmentRejectedBecauseOnlyOneBox() throws Exception {
         LocalDateTime dateTime = LocalDateTime.of(mondayDate, LocalTime.of(17, 0));
-        book(request(patient.getId(), professional1.getId(), emsellaService.getId(), dateTime));
+        book(request(professional1.getId(), emsellaService.getId(), dateTime));
 
-        CreateAppointmentRequest secondBody = request(patient.getId(), professional2.getId(),
-                emsellaService.getId(), dateTime);
+        CreateAppointmentRequest secondBody = request(professional2.getId(), emsellaService.getId(), dateTime);
 
         String responseJson = mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments")
+                        .header("Authorization", "Bearer " + patientToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(secondBody)))
                 .andExpect(MockMvcResultMatchers.status().isConflict())
@@ -219,9 +229,10 @@ class RecurringBlockCapacityIntegrationTest {
                 "RPG - Alejandra González"));
 
         LocalDateTime dateTime = LocalDateTime.of(saturdayDate, LocalTime.of(11, 30));
-        CreateAppointmentRequest body = request(patient.getId(), professional1.getId(), generalService.getId(), dateTime);
+        CreateAppointmentRequest body = request(professional1.getId(), generalService.getId(), dateTime);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments")
+                        .header("Authorization", "Bearer " + patientToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(MockMvcResultMatchers.status().isCreated())
@@ -232,7 +243,7 @@ class RecurringBlockCapacityIntegrationTest {
     void availableSlotsHidesSlotUnavailableDueToReducedCapacity(
             @Autowired AppointmentService appointmentService) throws Exception {
         LocalDateTime otherProfessionalBooking = LocalDateTime.of(mondayDate, LocalTime.of(17, 0));
-        book(request(patient.getId(), professional2.getId(), generalService.getId(), otherProfessionalBooking));
+        book(request(professional2.getId(), generalService.getId(), otherProfessionalBooking));
 
         List<AvailableSlotResponse> slots = appointmentService.findAvailableSlots(
                 professional1.getId(), generalService.getId(), mondayDate);
@@ -253,12 +264,12 @@ class RecurringBlockCapacityIntegrationTest {
                 "EMSELLA - inactive"));
 
         LocalDateTime dateTime = LocalDateTime.of(tuesdayDate, LocalTime.of(17, 0));
-        book(request(patient.getId(), professional1.getId(), generalService.getId(), dateTime));
+        book(request(professional1.getId(), generalService.getId(), dateTime));
 
-        CreateAppointmentRequest secondBody = request(patient.getId(), professional2.getId(),
-                generalService.getId(), dateTime);
+        CreateAppointmentRequest secondBody = request(professional2.getId(), generalService.getId(), dateTime);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments")
+                        .header("Authorization", "Bearer " + patientToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(secondBody)))
                 .andExpect(MockMvcResultMatchers.status().isCreated())

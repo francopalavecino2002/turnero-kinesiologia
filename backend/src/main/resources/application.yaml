@@ -21,6 +21,7 @@ spring:
 
 clinic:
   max-concurrent-appointments: 2
+  min-cancellation-hours: 24
 
 jwt:
   # Dev-only fallback so a local `./mvnw spring-boot:run` works without extra setup. In any

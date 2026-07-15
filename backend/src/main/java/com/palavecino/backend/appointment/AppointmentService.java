@@ -15,9 +15,11 @@ import com.palavecino.backend.professional.Professional;
 import com.palavecino.backend.professional.ProfessionalRepository;
 import com.palavecino.backend.recurringblock.RecurringBlock;
 import com.palavecino.backend.recurringblock.RecurringBlockRepository;
+import com.palavecino.backend.security.AuthenticatedUser;
 import com.palavecino.backend.service.Service;
 import com.palavecino.backend.service.ServiceRepository;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -25,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.transaction.annotation.Transactional;
 
 @org.springframework.stereotype.Service
@@ -39,6 +42,7 @@ public class AppointmentService {
     private final RecurringBlockRepository recurringBlockRepository;
     private final Clock clock;
     private final int maxConcurrentAppointments;
+    private final long minCancellationHours;
 
     public AppointmentService(AppointmentRepository appointmentRepository,
                                ProfessionalRepository professionalRepository,
@@ -47,7 +51,8 @@ public class AppointmentService {
                                AvailabilityRepository availabilityRepository,
                                RecurringBlockRepository recurringBlockRepository,
                                Clock clock,
-                               @Value("${clinic.max-concurrent-appointments}") int maxConcurrentAppointments) {
+                               @Value("${clinic.max-concurrent-appointments}") int maxConcurrentAppointments,
+                               @Value("${clinic.min-cancellation-hours}") long minCancellationHours) {
         this.appointmentRepository = appointmentRepository;
         this.professionalRepository = professionalRepository;
         this.patientRepository = patientRepository;
@@ -56,9 +61,14 @@ public class AppointmentService {
         this.recurringBlockRepository = recurringBlockRepository;
         this.clock = clock;
         this.maxConcurrentAppointments = maxConcurrentAppointments;
+        this.minCancellationHours = minCancellationHours;
     }
 
-    public List<AppointmentResponse> findByProfessionalAndDate(Long professionalId, LocalDate date) {
+    public List<AppointmentResponse> findByProfessionalAndDate(Long professionalId, LocalDate date, AuthenticatedUser currentUser) {
+        if (currentUser.isProfessional() && !professionalId.equals(currentUser.professionalId())) {
+            throw new AccessDeniedException("You can only view your own agenda");
+        }
+
         Professional professional = professionalRepository.findById(professionalId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Professional not found with id " + professionalId));
@@ -71,12 +81,21 @@ public class AppointmentService {
                 .toList();
     }
 
-    public List<AppointmentResponse> findByPatient(Long patientId) {
-        Patient patient = patientRepository.findById(patientId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Patient not found with id " + patientId));
+    public List<AppointmentResponse> findMyAppointments(AuthenticatedUser currentUser) {
+        Patient patient = requirePatient(currentUser);
 
         return appointmentRepository.findByPatientWithDetails(patient).stream()
+                .map(AppointmentMapper::toResponse)
+                .toList();
+    }
+
+    public List<AppointmentResponse> findMyAgenda(LocalDate date, AuthenticatedUser currentUser) {
+        Professional professional = requireProfessional(currentUser);
+
+        LocalDateTime dayStart = date.atStartOfDay();
+        LocalDateTime dayEnd = dayStart.plusDays(1);
+
+        return appointmentRepository.findByProfessionalAndDate(professional, dayStart, dayEnd).stream()
                 .map(AppointmentMapper::toResponse)
                 .toList();
     }
@@ -147,17 +166,18 @@ public class AppointmentService {
         return slots;
     }
 
-    public AppointmentResponse findById(Long id) {
+    public AppointmentResponse findById(Long id, AuthenticatedUser currentUser) {
         Appointment appointment = appointmentRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Appointment not found with id " + id));
+
+        requireOwnership(appointment, currentUser);
+
         return AppointmentMapper.toResponse(appointment);
     }
 
     @Transactional
-    public AppointmentResponse bookAppointment(CreateAppointmentRequest request) {
-        Patient patient = patientRepository.findById(request.patientId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Patient not found with id " + request.patientId()));
+    public AppointmentResponse bookAppointment(CreateAppointmentRequest request, AuthenticatedUser currentUser) {
+        Patient patient = requirePatient(currentUser);
 
         Professional professional = professionalRepository.findById(request.professionalId())
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -213,6 +233,83 @@ public class AppointmentService {
 
         return AppointmentMapper.toResponse(appointmentRepository.findByIdWithDetails(appointment.getId())
                 .orElseThrow());
+    }
+
+    @Transactional
+    public AppointmentResponse cancel(Long id, AuthenticatedUser currentUser) {
+        Appointment appointment = findOwnedForTransition(id, currentUser);
+
+        ensureTransitionAllowed(appointment, AppointmentStatus.CANCELLED);
+
+        if (currentUser.isPatient()) {
+            long minutesUntilAppointment = Duration.between(LocalDateTime.now(clock), appointment.getDateTime()).toMinutes();
+            if (minutesUntilAppointment < minCancellationHours * 60) {
+                throw new ConflictException(
+                        "Appointments can only be cancelled at least " + minCancellationHours
+                                + " hours before the scheduled time");
+            }
+        }
+
+        appointment.setStatus(AppointmentStatus.CANCELLED);
+        return AppointmentMapper.toResponse(appointment);
+    }
+
+    @Transactional
+    public AppointmentResponse confirm(Long id, AuthenticatedUser currentUser) {
+        return transitionAsStaff(id, currentUser, AppointmentStatus.CONFIRMED);
+    }
+
+    @Transactional
+    public AppointmentResponse complete(Long id, AuthenticatedUser currentUser) {
+        return transitionAsStaff(id, currentUser, AppointmentStatus.COMPLETED);
+    }
+
+    @Transactional
+    public AppointmentResponse noShow(Long id, AuthenticatedUser currentUser) {
+        return transitionAsStaff(id, currentUser, AppointmentStatus.NO_SHOW);
+    }
+
+    private AppointmentResponse transitionAsStaff(Long id, AuthenticatedUser currentUser, AppointmentStatus target) {
+        Appointment appointment = findOwnedForTransition(id, currentUser);
+        ensureTransitionAllowed(appointment, target);
+        appointment.setStatus(target);
+        return AppointmentMapper.toResponse(appointment);
+    }
+
+    private void ensureTransitionAllowed(Appointment appointment, AppointmentStatus target) {
+        if (!appointment.getStatus().canTransitionTo(target)) {
+            throw new ConflictException(
+                    "Cannot transition appointment from " + appointment.getStatus() + " to " + target);
+        }
+    }
+
+    private Appointment findOwnedForTransition(Long id, AuthenticatedUser currentUser) {
+        Appointment appointment = appointmentRepository.findByIdWithDetails(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Appointment not found with id " + id));
+
+        requireOwnership(appointment, currentUser);
+
+        return appointment;
+    }
+
+    private void requireOwnership(Appointment appointment, AuthenticatedUser currentUser) {
+        boolean owns = currentUser.isAdmin()
+                || (currentUser.isPatient() && appointment.getPatient().getId().equals(currentUser.patientId()))
+                || (currentUser.isProfessional() && appointment.getProfessional().getId().equals(currentUser.professionalId()));
+
+        if (!owns) {
+            throw new AccessDeniedException("You do not have access to this appointment");
+        }
+    }
+
+    private Patient requirePatient(AuthenticatedUser currentUser) {
+        return patientRepository.findById(currentUser.patientId())
+                .orElseThrow(() -> new ResourceNotFoundException("Patient record not found for current user"));
+    }
+
+    private Professional requireProfessional(AuthenticatedUser currentUser) {
+        return professionalRepository.findById(currentUser.professionalId())
+                .orElseThrow(() -> new ResourceNotFoundException("Professional record not found for current user"));
     }
 
     private com.palavecino.backend.availability.DayOfWeek toDayOfWeek(LocalDate date) {
