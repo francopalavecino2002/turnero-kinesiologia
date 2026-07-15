@@ -1,39 +1,197 @@
-// Include theming for Angular Material with `mat.theme()`.
-// This Sass mixin will define CSS variables that are used for styling Angular Material
-// components according to the Material 3 design spec.
-// Learn more about theming and how to use it for your application's
-// custom components at https://material.angular.dev/guide/theming
+// ============================================================================
+// eQi design system — centralized theme + shared conventions
+// ----------------------------------------------------------------------------
+// Everything visual for the app is anchored here:
+//   1. Brand palette as SCSS vars + CSS custom properties (usable from any
+//      component or plain CSS).
+//   2. Angular Material M3 theme, with its system color/typography tokens
+//      overridden to the eQi brand so Material components (buttons, inputs,
+//      checkboxes) render on-brand everywhere for free.
+//   3. Reusable layout conventions (auth shell, card, buttons, form spacing)
+//      that later screens compose instead of re-styling from scratch.
+// ============================================================================
+
 @use '@angular/material' as mat;
+
+// --- 1. Brand palette -------------------------------------------------------
+$eqi-primary: #367079; // teal — primary actions, headings
+$eqi-primary-strong: #2a5a62; // hover/pressed
+$eqi-accent: #acc9cc; // light teal — containers, soft accents
+$eqi-neutral: #d6d6d6; // borders, dividers
+$eqi-neutral-light: #eaeaea; // subtle fills
+$eqi-ink: #143034; // dark teal — primary text
+$eqi-ink-soft: #4b5f62; // secondary text
+$eqi-surface: #ffffff; // cards
+$eqi-danger: #b3261e; // errors
 
 html {
   height: 100%;
+
+  // Angular Material M3 theme. `cyan` is the closest built-in tonal palette to
+  // our teal; the exact brand values are pinned via the system-variable
+  // overrides below (those cascade into every Material component at use time).
   @include mat.theme(
     (
       color: (
-        primary: mat.$azure-palette,
-        tertiary: mat.$blue-palette,
+        primary: mat.$cyan-palette,
+        tertiary: mat.$cyan-palette,
       ),
-      typography: Roboto,
+      typography: Montserrat,
       density: 0,
     )
   );
+
+  // Pin the exact eQi brand colors onto Material's system tokens. Declared
+  // after `mat.theme()` (same specificity) so these win.
+  --mat-sys-primary: #{$eqi-primary};
+  --mat-sys-on-primary: #ffffff;
+  --mat-sys-primary-container: #{$eqi-accent};
+  --mat-sys-on-primary-container: #{$eqi-ink};
+
+  // Brand tokens exposed as CSS custom properties for our own components.
+  --eqi-primary: #{$eqi-primary};
+  --eqi-primary-strong: #{$eqi-primary-strong};
+  --eqi-accent: #{$eqi-accent};
+  --eqi-neutral: #{$eqi-neutral};
+  --eqi-neutral-light: #{$eqi-neutral-light};
+  --eqi-ink: #{$eqi-ink};
+  --eqi-ink-soft: #{$eqi-ink-soft};
+  --eqi-surface: #{$eqi-surface};
+  --eqi-danger: #{$eqi-danger};
+
+  // Soft light-teal gradient drifting toward the primary brand teal.
+  --eqi-bg: linear-gradient(165deg, #f4f8f8 0%, #cfe0e1 58%, #a9c6c9 100%);
+
+  // Shared spatial + shape scale.
+  --eqi-radius-card: 20px;
+  --eqi-radius-control: 12px;
+  --eqi-shadow-card: 0 18px 40px -12px rgba(20, 48, 52, 0.28);
+  --eqi-touch-target: 52px; // comfortable minimum for phones
 }
 
 body {
-  // Default the application to a light color theme. This can be changed to
-  // `dark` to enable the dark color theme, or to `light dark` to defer to the
-  // user's system settings.
-  color-scheme: light;
-
-  // Set a default background, font and text colors for the application using
-  // Angular Material's system-level CSS variables. Learn more about these
-  // variables at https://material.angular.dev/guide/system-variables
-  background-color: var(--mat-sys-surface);
-  color: var(--mat-sys-on-surface);
-  font: var(--mat-sys-body-medium);
-
-  // Reset the user agent margin.
   margin: 0;
-  height: 100%;
+  min-height: 100%;
+  color: var(--eqi-ink);
+  background-color: var(--mat-sys-surface);
+  font-family: 'Montserrat', 'Segoe UI', Roboto, sans-serif;
+  color-scheme: light;
 }
-/* You can add global styles to this file, and also import other style files */
+
+// --- 3. Shared conventions --------------------------------------------------
+// These classes are the reusable building blocks later screens compose.
+
+// Full-viewport centered shell with the brand background. `dvh` tracks the
+// *visible* viewport so the layout stays centered when the mobile keyboard
+// opens; `overflow-y: auto` lets a tall form scroll instead of clipping fields.
+.eqi-shell {
+  box-sizing: border-box;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(16px, 5vw, 40px);
+  background: var(--eqi-bg);
+  overflow-y: auto;
+}
+
+// Mobile-first card: near-full-width with breathing room on phones, capped and
+// centered on larger screens.
+.eqi-card {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 420px;
+  background: var(--eqi-surface);
+  border-radius: var(--eqi-radius-card);
+  box-shadow: var(--eqi-shadow-card);
+  padding: clamp(24px, 6vw, 36px);
+}
+
+.eqi-logo {
+  display: block;
+  height: 104px;
+  width: auto;
+  max-width: 100%;
+  margin: 0 auto 8px;
+}
+
+.eqi-heading {
+  margin: 4px 0 2px;
+  text-align: center;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--eqi-ink);
+}
+
+.eqi-subheading {
+  margin: 0 0 22px;
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--eqi-ink-soft);
+}
+
+// Vertical form rhythm. 16px inputs keep iOS Safari from auto-zooming on focus.
+.eqi-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.eqi-form .mat-mdc-form-field {
+  width: 100%;
+}
+
+.eqi-card input.mat-mdc-input-element {
+  font-size: 16px;
+}
+
+// Full-width, touch-friendly primary button.
+.eqi-btn-block.mat-mdc-raised-button,
+.eqi-btn-block.mat-mdc-unelevated-button {
+  width: 100%;
+  min-height: var(--eqi-touch-target);
+  border-radius: var(--eqi-radius-control);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  font-size: 1rem;
+}
+
+// Inline error banner (role="alert" in the template).
+.eqi-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: var(--eqi-radius-control);
+  background: #fdecea;
+  color: var(--eqi-danger);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+// Secondary row (e.g. "¿No tenés cuenta? Registrate").
+.eqi-alt {
+  margin: 18px 0 0;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--eqi-ink-soft);
+}
+
+.eqi-alt a {
+  color: var(--eqi-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.eqi-alt a:hover,
+.eqi-alt a:focus-visible {
+  text-decoration: underline;
+}
+
+// Always-visible focus ring for keyboard users (WCAG).
+:focus-visible {
+  outline: 3px solid var(--eqi-primary);
+  outline-offset: 2px;
+}

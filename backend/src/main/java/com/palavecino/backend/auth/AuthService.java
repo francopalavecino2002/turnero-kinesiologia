@@ -53,7 +53,8 @@ public class AuthService {
         User user = new User(request.email(), passwordEncoder.encode(request.password()), Role.PATIENT, true);
         user = userRepository.save(user);
 
-        Patient patient = new Patient(request.firstName(), request.lastName(), request.phone(), user, true);
+        Patient patient = new Patient(request.firstName(), request.lastName(), request.phone(), user,
+                request.notificationsEnabledOrDefault());
         patient = patientRepository.save(patient);
 
         return new RegisterResponse(user.getId(), user.getEmail(), user.getRole(),

@@ -23,6 +23,10 @@ export interface RegisterRequest {
   firstName: string;
   lastName: string;
   phone: string;
+  // Opt-out reminder preference. The backend currently forces `true` and ignores
+  // this field (unknown properties are dropped); wiring it through server-side is
+  // a follow-up so unchecking actually persists.
+  notificationsEnabled?: boolean;
 }
 
 export interface RegisterResponse {

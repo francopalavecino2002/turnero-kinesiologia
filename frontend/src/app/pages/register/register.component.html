@@ -1,0 +1,114 @@
+<main class="eqi-shell">
+  <section class="eqi-card">
+    <img class="eqi-logo" src="assets/EQI-02.png" alt="eQi – Especialidades Kinésicas" width="120" height="120" />
+    <h1 class="eqi-heading">Creá tu cuenta</h1>
+    <p class="eqi-subheading">Reservá y gestioná tus turnos</p>
+
+    @if (errorMessage(); as message) {
+      <div class="eqi-error" role="alert">
+        <mat-icon aria-hidden="true">error_outline</mat-icon>
+        <span>{{ message }}</span>
+      </div>
+    }
+
+    <form class="eqi-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <mat-form-field appearance="outline">
+        <mat-label>Nombre</mat-label>
+        <input matInput type="text" autocomplete="given-name" formControlName="firstName" required />
+        @if (form.controls.firstName.hasError('required')) {
+          <mat-error>Ingresá tu nombre</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Apellido</mat-label>
+        <input matInput type="text" autocomplete="family-name" formControlName="lastName" required />
+        @if (form.controls.lastName.hasError('required')) {
+          <mat-error>Ingresá tu apellido</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Email</mat-label>
+        <input
+          matInput
+          type="email"
+          inputmode="email"
+          autocomplete="email"
+          formControlName="email"
+          required
+        />
+        @if (form.controls.email.hasError('required')) {
+          <mat-error>Ingresá tu email</mat-error>
+        } @else if (form.controls.email.hasError('email')) {
+          <mat-error>El email no es válido</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Teléfono</mat-label>
+        <input
+          matInput
+          type="tel"
+          inputmode="tel"
+          autocomplete="tel"
+          formControlName="phone"
+          required
+        />
+        @if (form.controls.phone.hasError('required')) {
+          <mat-error>Ingresá tu teléfono</mat-error>
+        } @else if (form.controls.phone.hasError('pattern')) {
+          <mat-error>Ingresá un teléfono válido</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Contraseña</mat-label>
+        <input
+          matInput
+          [type]="hidePassword() ? 'password' : 'text'"
+          autocomplete="new-password"
+          formControlName="password"
+          required
+        />
+        <button
+          matSuffix
+          mat-icon-button
+          type="button"
+          (click)="togglePassword()"
+          [attr.aria-label]="hidePassword() ? 'Mostrar contraseña' : 'Ocultar contraseña'"
+          [attr.aria-pressed]="!hidePassword()"
+        >
+          <mat-icon aria-hidden="true">{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+        </button>
+        @if (form.controls.password.hasError('required')) {
+          <mat-error>Ingresá una contraseña</mat-error>
+        } @else if (form.controls.password.hasError('minlength')) {
+          <mat-error>Debe tener al menos {{ passwordMinLength }} caracteres</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-checkbox class="eqi-checkbox" formControlName="notificationsEnabled" color="primary">
+        Quiero recibir recordatorios de mis turnos
+      </mat-checkbox>
+
+      <button
+        class="eqi-btn-block"
+        mat-raised-button
+        color="primary"
+        type="submit"
+        [disabled]="loading()"
+      >
+        @if (loading()) {
+          <mat-progress-spinner diameter="22" mode="indeterminate" aria-label="Creando tu cuenta" />
+        } @else {
+          Crear cuenta
+        }
+      </button>
+    </form>
+
+    <p class="eqi-alt">
+      ¿Ya tenés cuenta? <a routerLink="/login">Ingresá</a>
+    </p>
+  </section>
+</main>

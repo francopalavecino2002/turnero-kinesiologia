@@ -1,0 +1,76 @@
+<main class="eqi-shell">
+  <section class="eqi-card">
+    <img class="eqi-logo" src="assets/EQI-02.png" alt="eQi – Especialidades Kinésicas" width="120" height="120" />
+    <h1 class="eqi-heading">Bienvenido/a</h1>
+    <p class="eqi-subheading">Ingresá a tu cuenta</p>
+
+    @if (errorMessage(); as message) {
+      <div class="eqi-error" role="alert">
+        <mat-icon aria-hidden="true">error_outline</mat-icon>
+        <span>{{ message }}</span>
+      </div>
+    }
+
+    <form class="eqi-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <mat-form-field appearance="outline">
+        <mat-label>Email</mat-label>
+        <input
+          matInput
+          type="email"
+          inputmode="email"
+          autocomplete="email"
+          formControlName="email"
+          required
+        />
+        <mat-icon matSuffix aria-hidden="true">mail_outline</mat-icon>
+        @if (form.controls.email.hasError('required')) {
+          <mat-error>Ingresá tu email</mat-error>
+        } @else if (form.controls.email.hasError('email')) {
+          <mat-error>El email no es válido</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Contraseña</mat-label>
+        <input
+          matInput
+          [type]="hidePassword() ? 'password' : 'text'"
+          autocomplete="current-password"
+          formControlName="password"
+          required
+        />
+        <button
+          matSuffix
+          mat-icon-button
+          type="button"
+          (click)="togglePassword()"
+          [attr.aria-label]="hidePassword() ? 'Mostrar contraseña' : 'Ocultar contraseña'"
+          [attr.aria-pressed]="!hidePassword()"
+        >
+          <mat-icon aria-hidden="true">{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+        </button>
+        @if (form.controls.password.hasError('required')) {
+          <mat-error>Ingresá tu contraseña</mat-error>
+        }
+      </mat-form-field>
+
+      <button
+        class="eqi-btn-block"
+        mat-raised-button
+        color="primary"
+        type="submit"
+        [disabled]="loading()"
+      >
+        @if (loading()) {
+          <mat-progress-spinner diameter="22" mode="indeterminate" aria-label="Ingresando" />
+        } @else {
+          Ingresar
+        }
+      </button>
+    </form>
+
+    <p class="eqi-alt">
+      ¿No tenés cuenta? <a routerLink="/register">Registrate</a>
+    </p>
+  </section>
+</main>

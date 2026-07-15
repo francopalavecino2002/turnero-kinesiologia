@@ -1,0 +1,8 @@
+:host {
+  display: block;
+}
+
+// Keep the submit button's label and spinner centered while loading.
+.eqi-btn-block mat-progress-spinner {
+  display: inline-block;
+}
