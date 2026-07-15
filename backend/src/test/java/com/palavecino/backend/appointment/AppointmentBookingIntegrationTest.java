@@ -12,6 +12,7 @@ import com.palavecino.backend.patient.Patient;
 import com.palavecino.backend.patient.PatientRepository;
 import com.palavecino.backend.professional.Professional;
 import com.palavecino.backend.professional.ProfessionalRepository;
+import com.palavecino.backend.security.JwtService;
 import com.palavecino.backend.service.Service;
 import com.palavecino.backend.service.ServiceRepository;
 import com.palavecino.backend.user.Role;
@@ -71,6 +72,10 @@ class AppointmentBookingIntegrationTest {
     @Autowired
     private AppointmentRepository appointmentRepository;
 
+    @Autowired
+    private JwtService jwtService;
+
+    private User patientUser;
     private Patient patient;
     private Professional professional;
     private Service generalService;
@@ -82,7 +87,7 @@ class AppointmentBookingIntegrationTest {
         generalService = serviceRepository.save(new Service("General", 60, true));
         emsellaServiceNotOffered = serviceRepository.save(new Service("EMSELLA", 30, true));
 
-        User patientUser = userRepository.save(new User(unique("patient") + "@example.com", "hash", Role.PATIENT, true));
+        patientUser = userRepository.save(new User(unique("patient") + "@example.com", "hash", Role.PATIENT, true));
         patient = patientRepository.save(new Patient("Maria", "Lopez", "111111", patientUser));
 
         User professionalUser = userRepository.save(new User(unique("pro") + "@example.com", "hash", Role.PROFESSIONAL, true));
@@ -107,16 +112,21 @@ class AppointmentBookingIntegrationTest {
         return date;
     }
 
-    private CreateAppointmentRequest request(Long patientId, Long professionalId, Long serviceId, LocalDateTime dateTime) {
-        return new CreateAppointmentRequest(patientId, professionalId, serviceId, dateTime);
+    private String patientToken() {
+        return jwtService.generateToken(patientUser);
+    }
+
+    private CreateAppointmentRequest request(Long professionalId, Long serviceId, LocalDateTime dateTime) {
+        return new CreateAppointmentRequest(professionalId, serviceId, dateTime);
     }
 
     @Test
     void successfulBookingReturns201AndPersistsAsBooked() throws Exception {
         LocalDateTime dateTime = LocalDateTime.of(bookingDate, LocalTime.of(9, 0));
-        CreateAppointmentRequest body = request(patient.getId(), professional.getId(), generalService.getId(), dateTime);
+        CreateAppointmentRequest body = request(professional.getId(), generalService.getId(), dateTime);
 
         String responseJson = mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments")
+                        .header("Authorization", "Bearer " + patientToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(MockMvcResultMatchers.status().isCreated())
@@ -130,41 +140,34 @@ class AppointmentBookingIntegrationTest {
         assertThat(persisted).isPresent();
         assertThat(persisted.get().getStatus()).isEqualTo(AppointmentStatus.BOOKED);
         assertThat(persisted.get().getDateTime()).isEqualTo(dateTime);
+        assertThat(persisted.get().getPatient().getId()).isEqualTo(patient.getId());
     }
 
     @Test
     void locationHeaderPointsToResourceThatCanBeFetched() throws Exception {
         LocalDateTime dateTime = LocalDateTime.of(bookingDate, LocalTime.of(9, 0));
-        CreateAppointmentRequest body = request(patient.getId(), professional.getId(), generalService.getId(), dateTime);
+        CreateAppointmentRequest body = request(professional.getId(), generalService.getId(), dateTime);
 
         String location = mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments")
+                        .header("Authorization", "Bearer " + patientToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(MockMvcResultMatchers.status().isCreated())
                 .andReturn().getResponse().getHeader("Location");
 
-        mockMvc.perform(MockMvcRequestBuilders.get(location))
+        mockMvc.perform(MockMvcRequestBuilders.get(location)
+                        .header("Authorization", "Bearer " + patientToken()))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.status").value("BOOKED"));
     }
 
     @Test
-    void returns404WhenPatientDoesNotExist() throws Exception {
-        LocalDateTime dateTime = LocalDateTime.of(bookingDate, LocalTime.of(9, 0));
-        CreateAppointmentRequest body = request(999_999L, professional.getId(), generalService.getId(), dateTime);
-
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(body)))
-                .andExpect(MockMvcResultMatchers.status().isNotFound());
-    }
-
-    @Test
     void returns404WhenProfessionalDoesNotExist() throws Exception {
         LocalDateTime dateTime = LocalDateTime.of(bookingDate, LocalTime.of(9, 0));
-        CreateAppointmentRequest body = request(patient.getId(), 999_999L, generalService.getId(), dateTime);
+        CreateAppointmentRequest body = request(999_999L, generalService.getId(), dateTime);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments")
+                        .header("Authorization", "Bearer " + patientToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(MockMvcResultMatchers.status().isNotFound());
@@ -173,9 +176,10 @@ class AppointmentBookingIntegrationTest {
     @Test
     void returns404WhenServiceDoesNotExist() throws Exception {
         LocalDateTime dateTime = LocalDateTime.of(bookingDate, LocalTime.of(9, 0));
-        CreateAppointmentRequest body = request(patient.getId(), professional.getId(), 999_999L, dateTime);
+        CreateAppointmentRequest body = request(professional.getId(), 999_999L, dateTime);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments")
+                        .header("Authorization", "Bearer " + patientToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(MockMvcResultMatchers.status().isNotFound());
@@ -184,10 +188,10 @@ class AppointmentBookingIntegrationTest {
     @Test
     void returns400WhenProfessionalDoesNotOfferService() throws Exception {
         LocalDateTime dateTime = LocalDateTime.of(bookingDate, LocalTime.of(9, 0));
-        CreateAppointmentRequest body = request(patient.getId(), professional.getId(),
-                emsellaServiceNotOffered.getId(), dateTime);
+        CreateAppointmentRequest body = request(professional.getId(), emsellaServiceNotOffered.getId(), dateTime);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments")
+                        .header("Authorization", "Bearer " + patientToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
@@ -196,9 +200,10 @@ class AppointmentBookingIntegrationTest {
     @Test
     void returns400WhenRequestedTimeIsOutsideAvailability() throws Exception {
         LocalDateTime dateTime = LocalDateTime.of(bookingDate, LocalTime.of(14, 0));
-        CreateAppointmentRequest body = request(patient.getId(), professional.getId(), generalService.getId(), dateTime);
+        CreateAppointmentRequest body = request(professional.getId(), generalService.getId(), dateTime);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments")
+                        .header("Authorization", "Bearer " + patientToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
@@ -207,9 +212,10 @@ class AppointmentBookingIntegrationTest {
     @Test
     void returns400WhenSlotDoesNotFitWithinAvailability() throws Exception {
         LocalDateTime dateTime = LocalDateTime.of(bookingDate, LocalTime.of(11, 30));
-        CreateAppointmentRequest body = request(patient.getId(), professional.getId(), generalService.getId(), dateTime);
+        CreateAppointmentRequest body = request(professional.getId(), generalService.getId(), dateTime);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments")
+                        .header("Authorization", "Bearer " + patientToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
@@ -222,10 +228,10 @@ class AppointmentBookingIntegrationTest {
                 AppointmentStatus.BOOKED));
 
         LocalDateTime overlappingStart = LocalDateTime.of(bookingDate, LocalTime.of(9, 30));
-        CreateAppointmentRequest body = request(patient.getId(), professional.getId(), generalService.getId(),
-                overlappingStart);
+        CreateAppointmentRequest body = request(professional.getId(), generalService.getId(), overlappingStart);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments")
+                        .header("Authorization", "Bearer " + patientToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(MockMvcResultMatchers.status().isConflict());
@@ -251,10 +257,10 @@ class AppointmentBookingIntegrationTest {
         appointmentRepository.save(new Appointment(patient, professional2, generalService, slotStart,
                 AppointmentStatus.CONFIRMED));
 
-        CreateAppointmentRequest body = request(patient.getId(), professional3.getId(), generalService.getId(),
-                slotStart);
+        CreateAppointmentRequest body = request(professional3.getId(), generalService.getId(), slotStart);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments")
+                        .header("Authorization", "Bearer " + patientToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(MockMvcResultMatchers.status().isConflict());
@@ -266,13 +272,37 @@ class AppointmentBookingIntegrationTest {
         appointmentRepository.save(new Appointment(patient, professional, generalService, slotStart,
                 AppointmentStatus.CANCELLED));
 
-        CreateAppointmentRequest body = request(patient.getId(), professional.getId(), generalService.getId(),
-                slotStart);
+        CreateAppointmentRequest body = request(professional.getId(), generalService.getId(), slotStart);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments")
+                        .header("Authorization", "Bearer " + patientToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(MockMvcResultMatchers.status().isCreated())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.status").value("BOOKED"));
+    }
+
+    @Test
+    void returns401WhenNoTokenProvided() throws Exception {
+        LocalDateTime dateTime = LocalDateTime.of(bookingDate, LocalTime.of(9, 0));
+        CreateAppointmentRequest body = request(professional.getId(), generalService.getId(), dateTime);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(MockMvcResultMatchers.status().isUnauthorized());
+    }
+
+    @Test
+    void returns403WhenCallerIsNotAPatient() throws Exception {
+        String professionalToken = jwtService.generateToken(professional.getUser());
+        LocalDateTime dateTime = LocalDateTime.of(bookingDate, LocalTime.of(9, 0));
+        CreateAppointmentRequest body = request(professional.getId(), generalService.getId(), dateTime);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments")
+                        .header("Authorization", "Bearer " + professionalToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(MockMvcResultMatchers.status().isForbidden());
     }
 }
