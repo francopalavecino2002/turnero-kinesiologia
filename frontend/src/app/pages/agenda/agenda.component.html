@@ -1,0 +1,112 @@
+<div class="agenda">
+  <!-- Date selector -->
+  <div class="agenda__date-bar">
+    <button
+      mat-icon-button
+      class="agenda__nav-btn"
+      aria-label="Día anterior"
+      (click)="prevDay()"
+    >
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+
+    <div class="agenda__date-info">
+      @if (!isToday()) {
+        <button
+          mat-button
+          class="agenda__today-chip"
+          (click)="goToToday()"
+        >
+          Hoy
+        </button>
+      }
+      <span class="agenda__date-label">{{ dayLabel() }}</span>
+    </div>
+
+    <button
+      mat-icon-button
+      class="agenda__nav-btn"
+      aria-label="Día siguiente"
+      (click)="nextDay()"
+    >
+      <mat-icon>chevron_right</mat-icon>
+    </button>
+  </div>
+
+  <!-- Content -->
+  @if (loading()) {
+    <div class="agenda__loading">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else if (error()) {
+    <div class="agenda__error">
+      <p>No pudimos cargar la agenda.</p>
+      <button mat-flat-button color="primary" (click)="loadAgenda()">
+        Reintentar
+      </button>
+    </div>
+  } @else if (sortedEntries().length === 0) {
+    <div class="agenda__empty">
+      <mat-icon class="agenda__empty-icon">event_busy</mat-icon>
+      <p class="agenda__empty-text">No hay turnos para este día</p>
+    </div>
+  } @else {
+    <div class="agenda__list">
+      @for (entry of sortedEntries(); track $index) {
+        @if (entry.ownedByCurrentUser) {
+          <!-- Own appointment: full detail -->
+          <div class="agenda__card agenda__card--own eqi-card">
+            <div class="agenda__card-header">
+              <span class="agenda__card-time">
+                {{ formatTimeRange(entry.dateTime, entry.endTime) }}
+              </span>
+              <span
+                class="agenda__chip"
+                [class]="'agenda__chip--' + entry.status.toLowerCase()"
+              >
+                {{ statusLabel(entry.status) }}
+              </span>
+            </div>
+
+            <p class="agenda__card-patient">
+              {{ entry.patientFirstName }} {{ entry.patientLastName }}
+            </p>
+            <p class="agenda__card-service">{{ entry.serviceName }}</p>
+
+            <div class="agenda__card-actions">
+              @for (btn of actionsFor(entry); track btn.action) {
+                <button
+                  mat-stroked-button
+                  [color]="btn.destructive ? 'warn' : 'primary'"
+                  (click)="performAction(entry, btn)"
+                >
+                  {{ btn.label }}
+                </button>
+              }
+            </div>
+          </div>
+        } @else {
+          <!-- Other professional's appointment: muted -->
+          <div class="agenda__card agenda__card--other eqi-card">
+            <div class="agenda__card-header">
+              <span class="agenda__card-time">
+                {{ formatTimeRange(entry.dateTime, entry.endTime) }}
+              </span>
+              <span
+                class="agenda__chip"
+                [class]="'agenda__chip--' + entry.status.toLowerCase()"
+              >
+                {{ statusLabel(entry.status) }}
+              </span>
+            </div>
+
+            <p class="agenda__card-professional">
+              Dra. {{ entry.professionalFirstName }} {{ entry.professionalLastName }}
+            </p>
+            <p class="agenda__card-service">{{ entry.serviceName }}</p>
+          </div>
+        }
+      }
+    </div>
+  }
+</div>

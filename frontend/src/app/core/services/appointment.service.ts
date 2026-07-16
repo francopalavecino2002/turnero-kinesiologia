@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
+  AgendaEntry,
   AppointmentResponse,
   CreateAppointmentRequest,
   AvailableSlot,
@@ -28,6 +29,11 @@ export class AppointmentService {
   getMyAgenda(date: string): Observable<AppointmentResponse[]> {
     const params = new HttpParams().set('date', date);
     return this.http.get<AppointmentResponse[]>(`${this.apiUrl}/my-agenda`, { params });
+  }
+
+  getAgenda(date: string): Observable<AgendaEntry[]> {
+    const params = new HttpParams().set('date', date);
+    return this.http.get<AgendaEntry[]>(`${this.apiUrl}/agenda`, { params });
   }
 
   getByProfessionalAndDate(professionalId: number, date: string): Observable<AppointmentResponse[]> {
