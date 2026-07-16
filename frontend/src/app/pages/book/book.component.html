@@ -2,7 +2,7 @@
   @if (view() === 'wizard') {
     <h1 class="book__title eqi-heading">Reservar turno</h1>
 
-    <mat-stepper [linear]="true" [selectedIndex]="selectedIndex()" orientation="horizontal" class="book__stepper">
+    <mat-stepper [linear]="true" [selectedIndex]="selectedIndex()" (selectedIndexChange)="onStepChange($event)" [orientation]="stepperOrientation()" class="book__stepper">
       <!-- Step 1: service -->
       <mat-step [completed]="!!selectedService()" label="Servicio">
         @if (loadingServices()) {
@@ -21,8 +21,13 @@
                 [class.eqi-card--selected]="selectedService()?.id === service.id"
                 (click)="selectService(service)"
               >
-                <span class="book__option-name">{{ service.name }}</span>
-                <span class="book__option-meta">{{ service.name }} · {{ service.durationMinutes }} min</span>
+                <span class="book__option-header">
+                  <span class="book__option-name">{{ service.name }}</span>
+                  @if (selectedService()?.id === service.id) {
+                    <mat-icon class="book__option-check">check_circle</mat-icon>
+                  }
+                </span>
+                <span class="book__option-meta">{{ service.durationMinutes }} min</span>
               </button>
             }
           </div>
@@ -47,14 +52,19 @@
           } @else {
             <div class="book__cards">
               @for (professional of professionals(); track professional.id) {
-                <button
-                  type="button"
-                  class="eqi-card book__option"
-                  [class.eqi-card--selected]="selectedProfessional()?.id === professional.id"
-                  (click)="selectProfessional(professional)"
-                >
+              <button
+                type="button"
+                class="eqi-card book__option"
+                [class.eqi-card--selected]="selectedProfessional()?.id === professional.id"
+                (click)="selectProfessional(professional)"
+              >
+                <span class="book__option-header">
                   <span class="book__option-name">{{ professional.firstName }} {{ professional.lastName }}</span>
-                </button>
+                  @if (selectedProfessional()?.id === professional.id) {
+                    <mat-icon class="book__option-check">check_circle</mat-icon>
+                  }
+                </span>
+              </button>
               }
             </div>
           }
@@ -80,6 +90,11 @@
           <mat-datepicker-toggle matIconSuffix [for]="picker" />
           <mat-datepicker #picker />
         </mat-form-field>
+        <div class="book__date-actions">
+          <button mat-flat-button color="primary" type="button" (click)="confirmDate()" [disabled]="!dateChosen()">
+            Continuar
+          </button>
+        </div>
       </mat-step>
 
       <!-- Step 4: time slot -->
