@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { DatePipe } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { BreakpointObserver } from '@angular/cdk/layout';
 import { MAT_DATE_LOCALE, provideNativeDateAdapter } from '@angular/material/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -56,6 +57,12 @@ export class BookComponent {
   private readonly catalogService = inject(CatalogService);
   private readonly appointmentService = inject(AppointmentService);
   private readonly router = inject(Router);
+  private readonly breakpointObserver = inject(BreakpointObserver);
+
+  readonly isMobile = signal(this.breakpointObserver.isMatched('(max-width: 639.98px)'));
+  readonly stepperOrientation = computed<'horizontal' | 'vertical'>(() =>
+    this.isMobile() ? 'vertical' : 'horizontal',
+  );
 
   readonly today = new Date();
   readonly minDate = new Date(this.today.getFullYear(), this.today.getMonth(), this.today.getDate());
@@ -112,11 +119,25 @@ export class BookComponent {
     setTimeout(() => this.selectedIndex.set(index === -1 ? 0 : index));
   }
 
+  /** Syncs the signal when the user clicks a step header directly. */
+  onStepChange(index: number): void {
+    this.selectedIndex.set(index);
+  }
+
+  private resetDateAndSlots(): void {
+    this.dateChosen.set(false);
+    this.dateControl.setValue(this.minDate);
+    this.selectedSlot.set(null);
+    this.slots.set([]);
+    this.slotsError.set(false);
+  }
+
   selectService(service: Service): void {
     this.selectedService.set(service);
     this.selectedProfessional.set(null);
     this.noProfessionalsForService.set(false);
     this.professionals.set([]);
+    this.resetDateAndSlots();
     this.loadingProfessionals.set(true);
 
     this.catalogService.getProfessionalsForService(service.id).subscribe({
@@ -146,6 +167,7 @@ export class BookComponent {
 
   selectProfessional(professional: Professional): void {
     this.selectedProfessional.set(professional);
+    this.resetDateAndSlots();
     this.goToStep('date');
   }
 
@@ -156,6 +178,12 @@ export class BookComponent {
     this.dateControl.setValue(date);
     this.dateChosen.set(true);
     this.fetchSlots();
+  }
+
+  confirmDate(): void {
+    if (!this.dateChosen()) {
+      return;
+    }
     this.goToStep('slot');
   }
 
@@ -237,10 +265,7 @@ export class BookComponent {
     this.selectedProfessional.set(null);
     this.professionals.set([]);
     this.noProfessionalsForService.set(false);
-    this.dateChosen.set(false);
-    this.slots.set([]);
-    this.selectedSlot.set(null);
-    this.slotsError.set(false);
+    this.resetDateAndSlots();
     this.bookingError.set(null);
     this.bookingResult.set(null);
     this.dateControl.setValue(this.minDate);
@@ -269,6 +294,9 @@ export class BookComponent {
   }
 
   constructor() {
+    this.breakpointObserver
+      .observe('(max-width: 639.98px)')
+      .subscribe((result) => this.isMobile.set(result.matches));
     this.loadServices();
   }
 }
