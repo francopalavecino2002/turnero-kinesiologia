@@ -1,0 +1,103 @@
+<div class="my-appointments eqi-page">
+  <h1 class="my-appointments__title eqi-heading">Mis Turnos</h1>
+
+  @if (loading()) {
+    <div class="my-appointments__loading">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else if (error()) {
+    <div class="my-appointments__error">
+      <p>No pudimos cargar tus turnos.</p>
+      <button mat-flat-button color="primary" (click)="loadAppointments()">
+        Reintentar
+      </button>
+    </div>
+  } @else {
+    @if (upcoming().length === 0) {
+      <div class="my-appointments__empty">
+        <mat-icon class="my-appointments__empty-icon">event_busy</mat-icon>
+        <p class="my-appointments__empty-text">Todavía no tenés turnos reservados</p>
+        <button
+          mat-flat-button
+          color="primary"
+          class="my-appointments__empty-btn"
+          routerLink="/book"
+        >
+          Reservar un turno
+        </button>
+      </div>
+    } @else {
+      <section class="my-appointments__section">
+        <h2 class="my-appointments__section-title">Próximos turnos</h2>
+
+        @for (appointment of upcoming(); track appointment.id) {
+          <div class="my-appointments__card eqi-card">
+            <div class="my-appointments__card-header">
+              <span class="my-appointments__card-date">
+                {{ formatDateTime(appointment.dateTime) }}
+              </span>
+              <span
+                class="my-appointments__chip"
+                [class]="'my-appointments__chip--' + appointment.status.toLowerCase()"
+              >
+                {{ statusLabel(appointment.status) }}
+              </span>
+            </div>
+
+            <p class="my-appointments__card-service">
+              {{ appointment.serviceName }} · {{ appointment.serviceDurationMinutes }} min
+            </p>
+            <p class="my-appointments__card-professional">
+              Con {{ appointment.professionalFirstName }} {{ appointment.professionalLastName }}
+            </p>
+
+            <div class="my-appointments__card-actions">
+              <button
+                mat-stroked-button
+                color="warn"
+                [disabled]="!canCancel(appointment)"
+                [matTooltip]="'Los turnos deben cancelarse con al menos 24hs de anticipación'"
+                [matTooltipDisabled]="canCancel(appointment)"
+                matTooltipPosition="above"
+                (click)="cancelAppointment(appointment)"
+              >
+                Cancelar turno
+              </button>
+            </div>
+          </div>
+        }
+      </section>
+    }
+
+    @if (history().length > 0) {
+      <mat-expansion-panel class="my-appointments__history-panel">
+        <mat-expansion-panel-header>
+          <mat-panel-title>Historial</mat-panel-title>
+        </mat-expansion-panel-header>
+
+        @for (appointment of history(); track appointment.id) {
+          <div class="my-appointments__card my-appointments__card--past eqi-card">
+            <div class="my-appointments__card-header">
+              <span class="my-appointments__card-date">
+                {{ formatDateTime(appointment.dateTime) }}
+              </span>
+              <span
+                class="my-appointments__chip"
+                [class]="'my-appointments__chip--' + appointment.status.toLowerCase()"
+              >
+                {{ statusLabel(appointment.status) }}
+              </span>
+            </div>
+
+            <p class="my-appointments__card-service">
+              {{ appointment.serviceName }} · {{ appointment.serviceDurationMinutes }} min
+            </p>
+            <p class="my-appointments__card-professional">
+              Con {{ appointment.professionalFirstName }} {{ appointment.professionalLastName }}
+            </p>
+          </div>
+        }
+      </mat-expansion-panel>
+    }
+  }
+</div>
