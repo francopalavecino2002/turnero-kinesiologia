@@ -86,7 +86,8 @@ body {
 // opens; `overflow-y: auto` lets a tall form scroll instead of clipping fields.
 .eqi-shell {
   box-sizing: border-box;
-  min-height: 100dvh;
+  position: relative;
+  min-height: calc(100dvh - var(--eqi-shell-top, 0px));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -94,6 +95,19 @@ body {
   padding: clamp(16px, 5vw, 40px);
   background: var(--eqi-bg);
   overflow-y: auto;
+
+  // When the sticky header is visible, extend the gradient behind it so there
+  // is no white gap between the header bar and the shell background.
+  &::before {
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: 100%;
+    left: 0;
+    height: var(--eqi-shell-top, 0px);
+    background: var(--eqi-bg);
+    pointer-events: none;
+  }
 }
 
 // Mobile-first card: near-full-width with breathing room on phones, capped and

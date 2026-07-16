@@ -13,6 +13,7 @@ import { AuthService } from '../../core/services/auth.service';
   selector: 'app-change-password',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [MatButtonModule, MatIconModule],
+  styleUrl: './change-password.component.scss',
   template: `
     <main class="eqi-shell">
       <section class="eqi-card">
@@ -21,7 +22,7 @@ import { AuthService } from '../../core/services/auth.service';
         <p class="eqi-subheading">
           Por seguridad, necesitás cambiar tu contraseña temporal antes de continuar.
         </p>
-        <button class="eqi-btn-block" mat-raised-button color="primary" type="button" (click)="continue()">
+        <button class="continuar-btn eqi-btn-block" mat-raised-button color="primary" type="button" (click)="continue()">
           Continuar
         </button>
       </section>
