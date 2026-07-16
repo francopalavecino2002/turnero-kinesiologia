@@ -1,0 +1,78 @@
+<header class="eqi-header">
+  <a class="eqi-header__logo" [routerLink]="homeRoute()">
+    <img src="assets/EQI-02.png" alt="eQi" />
+  </a>
+
+  @if (!isMobile()) {
+    <nav class="eqi-header__nav">
+      @for (link of navLinks(); track link.route) {
+        <a
+          class="eqi-header__nav-link"
+          [routerLink]="link.route"
+          routerLinkActive="eqi-header__nav-link--active"
+        >
+          {{ link.label }}
+        </a>
+      }
+    </nav>
+  }
+
+  <div class="eqi-header__spacer"></div>
+
+  <span class="eqi-header__user-name">{{ displayName() }}</span>
+
+  @if (isMobile()) {
+    <button
+      class="eqi-header__menu-btn"
+      mat-icon-button
+      [matMenuTriggerFor]="mobileNavMenu"
+      aria-label="Abrir menú de navegación"
+    >
+      <mat-icon>menu</mat-icon>
+    </button>
+  } @else {
+    <button
+      class="eqi-header__avatar"
+      [matMenuTriggerFor]="userMenu"
+      aria-label="Menú de usuario"
+    >
+      {{ userInitial() }}
+    </button>
+  }
+
+  <mat-menu #mobileNavMenu="matMenu" class="eqi-mobile-nav-menu">
+    <div class="eqi-mobile-nav-menu__header">
+      <span class="eqi-mobile-nav-menu__user-name">{{ displayName() }}</span>
+      <span class="eqi-mobile-nav-menu__user-role">{{ role() }}</span>
+    </div>
+
+    @for (link of navLinks(); track link.route) {
+      <button mat-menu-item [routerLink]="link.route">
+        <mat-icon>{{ link.icon }}</mat-icon>
+        <span>{{ link.label }}</span>
+      </button>
+    }
+
+    <mat-divider></mat-divider>
+
+    <button mat-menu-item routerLink="/change-password">
+      <mat-icon>lock</mat-icon>
+      <span>Cambiar contraseña</span>
+    </button>
+    <button mat-menu-item (click)="logout()">
+      <mat-icon>logout</mat-icon>
+      <span>Cerrar sesión</span>
+    </button>
+  </mat-menu>
+
+  <mat-menu #userMenu="matMenu">
+    <button mat-menu-item routerLink="/change-password">
+      <mat-icon>lock</mat-icon>
+      <span>Cambiar contraseña</span>
+    </button>
+    <button mat-menu-item (click)="logout()">
+      <mat-icon>logout</mat-icon>
+      <span>Cerrar sesión</span>
+    </button>
+  </mat-menu>
+</header>
