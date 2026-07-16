@@ -1,5 +1,6 @@
 package com.palavecino.backend.appointment;
 
+import com.palavecino.backend.appointment.dto.AgendaEntryResponse;
 import com.palavecino.backend.appointment.dto.AppointmentMapper;
 import com.palavecino.backend.appointment.dto.AppointmentResponse;
 import com.palavecino.backend.appointment.dto.AvailableSlotResponse;
@@ -106,6 +107,26 @@ public class AppointmentService {
 
         return appointmentRepository.findAllByDate(dayStart, dayEnd).stream()
                 .map(AppointmentMapper::toResponse)
+                .toList();
+    }
+
+    public List<AgendaEntryResponse> findClinicAgenda(LocalDate date, AuthenticatedUser currentUser) {
+        LocalDateTime dayStart = date.atStartOfDay();
+        LocalDateTime dayEnd = dayStart.plusDays(1);
+
+        List<Appointment> appointments = appointmentRepository.findAllByDate(dayStart, dayEnd);
+
+        Long currentProfessionalId = currentUser.professionalId();
+
+        return appointments.stream()
+                .map(appointment -> {
+                    boolean isOwn = currentUser.isAdmin()
+                            || (currentProfessionalId != null
+                                && appointment.getProfessional().getId().equals(currentProfessionalId));
+                    return isOwn
+                            ? AppointmentMapper.toFullAgendaEntry(appointment)
+                            : AppointmentMapper.toReducedAgendaEntry(appointment);
+                })
                 .toList();
     }
 

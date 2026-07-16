@@ -1,5 +1,6 @@
 package com.palavecino.backend.appointment;
 
+import com.palavecino.backend.appointment.dto.AgendaEntryResponse;
 import com.palavecino.backend.appointment.dto.AppointmentResponse;
 import com.palavecino.backend.appointment.dto.AvailableSlotResponse;
 import com.palavecino.backend.appointment.dto.CreateAppointmentRequest;
@@ -59,6 +60,14 @@ public class AppointmentController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             Authentication authentication) {
         return ResponseEntity.ok(appointmentService.findMyAgenda(date, authenticatedUserResolver.resolve(authentication)));
+    }
+
+    @GetMapping("/agenda")
+    @PreAuthorize("hasAnyRole('PROFESSIONAL', 'ADMIN')")
+    public ResponseEntity<List<AgendaEntryResponse>> getClinicAgenda(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            Authentication authentication) {
+        return ResponseEntity.ok(appointmentService.findClinicAgenda(date, authenticatedUserResolver.resolve(authentication)));
     }
 
     @GetMapping(params = {"professionalId", "date"})
