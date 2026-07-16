@@ -65,7 +65,7 @@ class AuthIntegrationTest {
     }
 
     private RegisterRequest validRegisterRequest(String email) {
-        return new RegisterRequest(email, "password123", "Ana", "Perez", "3511234567");
+        return new RegisterRequest(email, "password123", "Ana", "Perez", "3511234567", true);
     }
 
     // ---- register ----
@@ -93,6 +93,46 @@ class AuthIntegrationTest {
         Optional<Patient> persistedPatient = patientRepository.findByUser(persistedUser);
         assertThat(persistedPatient).isPresent();
         assertThat(persistedPatient.get().isNotificationsEnabled()).isTrue();
+    }
+
+    @Test
+    void registerWithNotificationsDisabledPersistsItAsFalse() throws Exception {
+        String email = unique("optout") + "@example.com";
+        RegisterRequest request = new RegisterRequest(email, "password123", "Ana", "Perez", "3511234567", false);
+
+        String responseJson = mockMvc.perform(MockMvcRequestBuilders.post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(MockMvcResultMatchers.status().isCreated())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.notificationsEnabled").value(false))
+                .andReturn().getResponse().getContentAsString();
+
+        Long userId = objectMapper.readTree(responseJson).get("id").asLong();
+        User persistedUser = userRepository.findById(userId).orElseThrow();
+        Optional<Patient> persistedPatient = patientRepository.findByUser(persistedUser);
+        assertThat(persistedPatient).isPresent();
+        assertThat(persistedPatient.get().isNotificationsEnabled()).isFalse();
+    }
+
+    @Test
+    void registerWithoutNotificationsFieldDefaultsToEnabled() throws Exception {
+        String email = unique("default") + "@example.com";
+        // Body omits notificationsEnabled entirely (older/partial client).
+        String body = """
+                {
+                  "email": "%s",
+                  "password": "password123",
+                  "firstName": "Ana",
+                  "lastName": "Perez",
+                  "phone": "3511234567"
+                }
+                """.formatted(email);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(MockMvcResultMatchers.status().isCreated())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.notificationsEnabled").value(true));
     }
 
     @Test
@@ -136,7 +176,7 @@ class AuthIntegrationTest {
     @Test
     void registerWithShortPasswordReturns400() throws Exception {
         RegisterRequest request = new RegisterRequest(
-                unique("short") + "@example.com", "abc123", "Ana", "Perez", "3511234567");
+                unique("short") + "@example.com", "abc123", "Ana", "Perez", "3511234567", true);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -147,7 +187,7 @@ class AuthIntegrationTest {
     @Test
     void registerWithMissingFieldsReturns400() throws Exception {
         RegisterRequest request = new RegisterRequest(
-                unique("missing") + "@example.com", "password123", "", "", "");
+                unique("missing") + "@example.com", "password123", "", "", "", true);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -158,7 +198,7 @@ class AuthIntegrationTest {
     @Test
     void registerWithMalformedEmailReturns400() throws Exception {
         RegisterRequest request = new RegisterRequest(
-                "not-an-email", "password123", "Ana", "Perez", "3511234567");
+                "not-an-email", "password123", "Ana", "Perez", "3511234567", true);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
