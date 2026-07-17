@@ -64,7 +64,11 @@ public class DevDataSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        if (serviceRepository.count() > 0 || patientRepository.count() > 0) {
+        // Only check services: they are created exclusively by this seeder (no public
+        // endpoint to create them yet). Patients can register independently through
+        // /api/auth/register, so their existence is not a signal that static clinic
+        // data (services, professionals, availabilities, recurring blocks) has been seeded.
+        if (serviceRepository.count() > 0) {
             return;
         }
 
