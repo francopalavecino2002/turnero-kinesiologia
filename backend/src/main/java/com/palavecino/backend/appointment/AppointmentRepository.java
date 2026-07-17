@@ -123,4 +123,34 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("rangeStart") LocalDateTime rangeStart,
             @Param("rangeEnd") LocalDateTime rangeEnd,
             @Param("excludedServiceIds") List<Long> excludedServiceIds);
+
+    @Query(value = """
+            SELECT EXTRACT(DAY FROM a.date_time)::int AS day_of_month,
+                   COUNT(*)                           AS cnt
+            FROM appointment a
+            WHERE a.date_time >= :rangeStart
+              AND a.date_time < :rangeEnd
+              AND a.status <> 'CANCELLED'
+            GROUP BY EXTRACT(DAY FROM a.date_time)
+            ORDER BY day_of_month
+            """, nativeQuery = true)
+    List<Object[]> countNonCancelledPerDay(
+            @Param("rangeStart") LocalDateTime rangeStart,
+            @Param("rangeEnd") LocalDateTime rangeEnd);
+
+    @Query(value = """
+            SELECT EXTRACT(DAY FROM a.date_time)::int AS day_of_month,
+                   COUNT(*)                           AS cnt
+            FROM appointment a
+            WHERE a.date_time >= :rangeStart
+              AND a.date_time < :rangeEnd
+              AND a.status <> 'CANCELLED'
+              AND a.professional_id = :professionalId
+            GROUP BY EXTRACT(DAY FROM a.date_time)
+            ORDER BY day_of_month
+            """, nativeQuery = true)
+    List<Object[]> countNonCancelledPerDayByProfessional(
+            @Param("rangeStart") LocalDateTime rangeStart,
+            @Param("rangeEnd") LocalDateTime rangeEnd,
+            @Param("professionalId") Long professionalId);
 }
