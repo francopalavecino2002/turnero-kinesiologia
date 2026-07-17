@@ -109,6 +109,20 @@ export interface ErrorResponse {
   timestamp: string;
 }
 
+export interface AgendaEntry {
+  id: number | null;
+  dateTime: string;
+  endTime: string;
+  serviceName: string;
+  professionalId: number;
+  professionalFirstName: string;
+  professionalLastName: string;
+  status: AppointmentStatus;
+  patientFirstName: string | null;
+  patientLastName: string | null;
+  ownedByCurrentUser: boolean;
+}
+
 export interface JwtPayload {
   sub: string;
   role: Role;
