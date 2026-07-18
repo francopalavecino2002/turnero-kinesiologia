@@ -1,0 +1,164 @@
+.day-agenda {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.day-agenda__header {
+  padding: 0.25rem 0;
+}
+
+.day-agenda__label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--eqi-ink);
+}
+
+.day-agenda__label--today {
+  color: var(--eqi-primary);
+}
+
+// ── Loading / Error / Empty ────────────────────────────
+
+.day-agenda__loading {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 0;
+}
+
+.day-agenda__error {
+  text-align: center;
+  padding: 1.5rem 0;
+
+  p {
+    color: #b3261e;
+    margin: 0 0 1rem;
+  }
+}
+
+.day-agenda__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.day-agenda__empty-icon {
+  font-size: 3rem;
+  width: 3rem;
+  height: 3rem;
+  color: var(--eqi-neutral, #d6d6d6);
+}
+
+.day-agenda__empty-text {
+  color: var(--eqi-ink-soft, #555);
+  font-size: 1rem;
+  margin: 0.75rem 0 0;
+}
+
+// ── Card list ──────────────────────────────────────────
+
+.day-agenda__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+// ── Appointment cards ──────────────────────────────────
+
+.day-agenda__card {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.day-agenda__card--other {
+  opacity: 0.6;
+  background: var(--eqi-neutral-light, #eaeaea);
+}
+
+.day-agenda__card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.day-agenda__card-time {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--eqi-primary);
+}
+
+.day-agenda__card-patient {
+  margin: 0;
+  font-weight: 600;
+  color: var(--eqi-ink, #143034);
+}
+
+.day-agenda__card-professional {
+  margin: 0;
+  font-weight: 500;
+  color: var(--eqi-ink-soft, #555);
+}
+
+.day-agenda__card-service {
+  margin: 0;
+  color: var(--eqi-ink-soft, #555);
+  font-size: 0.9rem;
+}
+
+.day-agenda__card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+
+  button {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 40px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+}
+
+// ── Status chips ───────────────────────────────────────
+
+.day-agenda__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.75rem;
+  border-radius: 16px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.day-agenda__chip--booked {
+  background: var(--eqi-neutral-light, #eaeaea);
+  color: var(--eqi-ink-soft, #555);
+}
+
+.day-agenda__chip--confirmed {
+  background: color-mix(in srgb, var(--eqi-primary) 15%, white);
+  color: var(--eqi-primary);
+}
+
+.day-agenda__chip--cancelled {
+  background: #fdecea;
+  color: #b3261e;
+}
+
+.day-agenda__chip--completed {
+  background: #e6f4ea;
+  color: #1e7e34;
+}
+
+.day-agenda__chip--no_show {
+  background: var(--eqi-neutral-light, #eaeaea);
+  color: var(--eqi-ink-soft, #555);
+}

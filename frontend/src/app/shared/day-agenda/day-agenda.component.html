@@ -1,0 +1,83 @@
+<div class="day-agenda">
+  <div class="day-agenda__header">
+    @if (!isToday()) {
+      <span class="day-agenda__label">{{ dayLabel() }}</span>
+    } @else {
+      <span class="day-agenda__label day-agenda__label--today">{{ dayLabel() }} — Hoy</span>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="day-agenda__loading">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else if (error()) {
+    <div class="day-agenda__error">
+      <p>No pudimos cargar la agenda.</p>
+      <button mat-flat-button color="primary" (click)="loadAgendaFor(date())">
+        Reintentar
+      </button>
+    </div>
+  } @else if (sortedEntries().length === 0) {
+    <div class="day-agenda__empty">
+      <mat-icon class="day-agenda__empty-icon">event_busy</mat-icon>
+      <p class="day-agenda__empty-text">No hay turnos para este día</p>
+    </div>
+  } @else {
+    <div class="day-agenda__list">
+      @for (entry of sortedEntries(); track $index) {
+        @if (entry.ownedByCurrentUser) {
+          <div class="day-agenda__card day-agenda__card--own eqi-card">
+            <div class="day-agenda__card-header">
+              <span class="day-agenda__card-time">
+                {{ formatTimeRange(entry.dateTime, entry.endTime) }}
+              </span>
+              <span
+                class="day-agenda__chip"
+                [class]="'day-agenda__chip--' + entry.status.toLowerCase()"
+              >
+                {{ statusLabel(entry.status) }}
+              </span>
+            </div>
+
+            <p class="day-agenda__card-patient">
+              {{ entry.patientFirstName }} {{ entry.patientLastName }}
+            </p>
+            <p class="day-agenda__card-service">{{ entry.serviceName }}</p>
+
+            <div class="day-agenda__card-actions">
+              @for (btn of actionsFor(entry); track btn.action) {
+                <button
+                  mat-stroked-button
+                  [color]="btn.destructive ? 'warn' : 'primary'"
+                  (click)="performAction(entry, btn)"
+                >
+                  {{ btn.label }}
+                </button>
+              }
+            </div>
+          </div>
+        } @else {
+          <div class="day-agenda__card day-agenda__card--other eqi-card">
+            <div class="day-agenda__card-header">
+              <span class="day-agenda__card-time">
+                {{ formatTimeRange(entry.dateTime, entry.endTime) }}
+              </span>
+              <span
+                class="day-agenda__chip"
+                [class]="'day-agenda__chip--' + entry.status.toLowerCase()"
+              >
+                {{ statusLabel(entry.status) }}
+              </span>
+            </div>
+
+            <p class="day-agenda__card-professional">
+              Dra. {{ entry.professionalFirstName }} {{ entry.professionalLastName }}
+            </p>
+            <p class="day-agenda__card-service">{{ entry.serviceName }}</p>
+          </div>
+        }
+      }
+    </div>
+  }
+</div>

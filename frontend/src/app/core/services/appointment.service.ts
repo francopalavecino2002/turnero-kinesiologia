@@ -7,6 +7,7 @@ import {
   AppointmentResponse,
   CreateAppointmentRequest,
   AvailableSlot,
+  MonthSummaryResponse,
 } from '../models';
 
 @Injectable({ providedIn: 'root' })
@@ -34,6 +35,11 @@ export class AppointmentService {
   getAgenda(date: string): Observable<AgendaEntry[]> {
     const params = new HttpParams().set('date', date);
     return this.http.get<AgendaEntry[]>(`${this.apiUrl}/agenda`, { params });
+  }
+
+  getMonthSummary(year: number, month: number): Observable<MonthSummaryResponse> {
+    const params = new HttpParams().set('year', year).set('month', month);
+    return this.http.get<MonthSummaryResponse>(`${this.apiUrl}/agenda/month`, { params });
   }
 
   getByProfessionalAndDate(professionalId: number, date: string): Observable<AppointmentResponse[]> {
