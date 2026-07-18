@@ -123,6 +123,15 @@ export interface AgendaEntry {
   ownedByCurrentUser: boolean;
 }
 
+export interface MonthDaySummary {
+  day: number;
+  count: number;
+}
+
+export interface MonthSummaryResponse {
+  days: MonthDaySummary[];
+}
+
 export interface JwtPayload {
   sub: string;
   role: Role;

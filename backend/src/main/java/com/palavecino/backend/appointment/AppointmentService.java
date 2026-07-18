@@ -5,6 +5,7 @@ import com.palavecino.backend.appointment.dto.AppointmentMapper;
 import com.palavecino.backend.appointment.dto.AppointmentResponse;
 import com.palavecino.backend.appointment.dto.AvailableSlotResponse;
 import com.palavecino.backend.appointment.dto.CreateAppointmentRequest;
+import com.palavecino.backend.appointment.dto.MonthSummaryResponse;
 import com.palavecino.backend.availability.Availability;
 import com.palavecino.backend.availability.AvailabilityRepository;
 import com.palavecino.backend.exception.BusinessRuleViolationException;
@@ -128,6 +129,29 @@ public class AppointmentService {
                             : AppointmentMapper.toReducedAgendaEntry(appointment);
                 })
                 .toList();
+    }
+
+    public MonthSummaryResponse findMonthSummary(int year, int month, AuthenticatedUser currentUser) {
+        LocalDate firstDay = LocalDate.of(year, month, 1);
+        LocalDateTime rangeStart = firstDay.atStartOfDay();
+        LocalDateTime rangeEnd = firstDay.plusMonths(1).atStartOfDay();
+
+        List<Object[]> rows;
+        if (currentUser.isProfessional()) {
+            Professional professional = requireProfessional(currentUser);
+            rows = appointmentRepository.countNonCancelledPerDayByProfessional(
+                    rangeStart, rangeEnd, professional.getId());
+        } else {
+            rows = appointmentRepository.countNonCancelledPerDay(rangeStart, rangeEnd);
+        }
+
+        List<MonthSummaryResponse.DaySummary> days = rows.stream()
+                .map(row -> new MonthSummaryResponse.DaySummary(
+                        ((Number) row[0]).intValue(),
+                        ((Number) row[1]).intValue()))
+                .toList();
+
+        return new MonthSummaryResponse(days);
     }
 
     public List<AvailableSlotResponse> findAvailableSlots(Long professionalId, Long serviceId, LocalDate date) {

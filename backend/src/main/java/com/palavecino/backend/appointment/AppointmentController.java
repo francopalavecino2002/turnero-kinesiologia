@@ -4,6 +4,7 @@ import com.palavecino.backend.appointment.dto.AgendaEntryResponse;
 import com.palavecino.backend.appointment.dto.AppointmentResponse;
 import com.palavecino.backend.appointment.dto.AvailableSlotResponse;
 import com.palavecino.backend.appointment.dto.CreateAppointmentRequest;
+import com.palavecino.backend.appointment.dto.MonthSummaryResponse;
 import com.palavecino.backend.security.AuthenticatedUserResolver;
 import jakarta.validation.Valid;
 import java.net.URI;
@@ -68,6 +69,16 @@ public class AppointmentController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             Authentication authentication) {
         return ResponseEntity.ok(appointmentService.findClinicAgenda(date, authenticatedUserResolver.resolve(authentication)));
+    }
+
+    @GetMapping("/agenda/month")
+    @PreAuthorize("hasAnyRole('PROFESSIONAL', 'ADMIN')")
+    public ResponseEntity<MonthSummaryResponse> getMonthSummary(
+            @RequestParam int year,
+            @RequestParam int month,
+            Authentication authentication) {
+        return ResponseEntity.ok(appointmentService.findMonthSummary(year, month,
+                authenticatedUserResolver.resolve(authentication)));
     }
 
     @GetMapping(params = {"professionalId", "date"})
