@@ -1,0 +1,373 @@
+// ============================================================================
+// Landing page — mobile-first, using eQi design-system tokens
+// ============================================================================
+
+:host {
+  display: block;
+}
+
+// ---- Top bar --------------------------------------------------------------
+
+.landing-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  height: 60px;
+  padding: 0 16px;
+  background: var(--eqi-surface);
+  border-bottom: 1px solid var(--eqi-neutral);
+
+  @media (min-width: 768px) {
+    height: 64px;
+    padding: 0 32px;
+  }
+}
+
+.landing-topbar__logo {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  flex-shrink: 0;
+
+  img {
+    height: 40px;
+    width: auto;
+  }
+
+  @media (min-width: 768px) {
+    img {
+      height: 44px;
+    }
+  }
+}
+
+.landing-topbar__spacer {
+  flex: 1;
+}
+
+.landing-topbar__cta {
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: var(--eqi-radius-control) !important;
+}
+
+// ---- Hero -----------------------------------------------------------------
+
+.landing-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100dvh - 60px);
+  padding: clamp(32px, 8vw, 80px) clamp(16px, 5vw, 40px);
+  background: var(--eqi-bg);
+  overflow: hidden;
+  text-align: center;
+
+  @media (min-width: 768px) {
+    min-height: calc(100dvh - 64px);
+  }
+}
+
+// Subtle decorative pattern accent — very low opacity so it never hurts readability.
+// Uses the brand PATRON asset as a texture.
+.landing-hero__pattern {
+  position: absolute;
+  inset: 0;
+  background: url('../../../assets/EQI - MARCA/PATRON/PATRON-02.jpg') center / cover no-repeat;
+  opacity: 0.06;
+  pointer-events: none;
+}
+
+.landing-hero__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 640px;
+}
+
+.landing-hero__logo {
+  display: block;
+  width: 140px;
+  height: auto;
+  margin-bottom: 20px;
+
+  @media (min-width: 768px) {
+    width: 200px;
+    margin-bottom: 28px;
+  }
+}
+
+.landing-hero__title {
+  margin: 0 0 12px;
+  font-size: clamp(1.5rem, 6vw, 2.4rem);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--eqi-ink);
+}
+
+.landing-hero__tagline {
+  margin: 0 0 32px;
+  font-size: clamp(0.95rem, 3.5vw, 1.15rem);
+  font-weight: 500;
+  line-height: 1.55;
+  color: var(--eqi-ink-soft);
+
+  br {
+    display: block;
+    content: '';
+  }
+
+  @media (min-width: 480px) {
+    br {
+      display: inline;
+    }
+  }
+}
+
+.landing-hero__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 0 40px;
+  border-radius: var(--eqi-radius-control) !important;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.landing-hero__pro-link {
+  display: inline-block;
+  margin-top: 20px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--eqi-ink-soft);
+  text-decoration: none;
+  transition: color 0.2s;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--eqi-primary);
+    text-decoration: underline;
+  }
+}
+
+// ---- Servicios ------------------------------------------------------------
+
+.landing-services {
+  padding: clamp(40px, 10vw, 80px) clamp(16px, 5vw, 40px);
+  background: var(--eqi-surface);
+}
+
+.landing-services__heading {
+  margin: 0 0 28px;
+  text-align: center;
+  font-size: clamp(1.25rem, 5vw, 1.75rem);
+  font-weight: 700;
+  color: var(--eqi-ink);
+}
+
+.landing-services__state {
+  display: flex;
+  justify-content: center;
+  padding: 32px 0;
+  text-align: center;
+  color: var(--eqi-ink-soft);
+  font-size: 0.95rem;
+
+  &--error {
+    color: var(--eqi-ink-soft);
+  }
+}
+
+.landing-services__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  max-width: 800px;
+  margin: 0 auto;
+
+  @media (min-width: 600px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+
+  @media (min-width: 800px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.landing-services__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 20px;
+  background: var(--eqi-neutral-light);
+  border-radius: var(--eqi-radius-card);
+  text-align: center;
+  transition: box-shadow 0.2s, transform 0.2s;
+
+  &:hover {
+    box-shadow: 0 8px 24px -8px rgba(20, 48, 52, 0.15);
+    transform: translateY(-2px);
+  }
+}
+
+.landing-services__card-name {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--eqi-ink);
+}
+
+.landing-services__card-duration {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--eqi-primary);
+}
+
+// ---- Contacto -------------------------------------------------------------
+
+.landing-contact {
+  padding: clamp(40px, 10vw, 80px) clamp(16px, 5vw, 40px);
+  background: var(--eqi-bg);
+}
+
+.landing-contact__heading {
+  margin: 0 0 28px;
+  text-align: center;
+  font-size: clamp(1.25rem, 5vw, 1.75rem);
+  font-weight: 700;
+  color: var(--eqi-ink);
+}
+
+.landing-contact__grid {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  max-width: 900px;
+  margin: 0 auto;
+
+  @media (min-width: 768px) {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+}
+
+.landing-contact__info {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  flex: 1;
+
+  @media (min-width: 768px) {
+    min-width: 280px;
+  }
+}
+
+.landing-contact__item {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.landing-contact__icon {
+  flex-shrink: 0;
+  color: var(--eqi-primary);
+  margin-top: 2px;
+}
+
+.landing-contact__label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--eqi-ink-soft);
+  margin-bottom: 2px;
+}
+
+.landing-contact__value {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--eqi-ink);
+  line-height: 1.5;
+}
+
+.landing-contact__link {
+  display: inline-block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--eqi-primary);
+  text-decoration: none;
+  transition: color 0.2s;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--eqi-primary-strong);
+    text-decoration: underline;
+  }
+}
+
+.landing-contact__map {
+  flex: 1;
+  min-width: 0;
+  border-radius: var(--eqi-radius-card);
+  overflow: hidden;
+  box-shadow: 0 4px 20px -4px rgba(20, 48, 52, 0.15);
+
+  iframe {
+    display: block;
+    width: 100%;
+    min-height: 260px;
+
+    @media (min-width: 768px) {
+      min-height: 340px;
+    }
+  }
+}
+
+// ---- Footer ---------------------------------------------------------------
+
+.landing-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 16px;
+  background: var(--eqi-ink);
+  color: rgba(255, 255, 255, 0.85);
+  text-align: center;
+}
+
+.landing-footer__logo {
+  height: 32px;
+  width: auto;
+  margin-bottom: 4px;
+  filter: brightness(0) invert(1);
+}
+
+.landing-footer__name {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.landing-footer__copy {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+.landing-footer__contact {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
