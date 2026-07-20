@@ -1,0 +1,149 @@
+<!-- ===================== LANDING TOP BAR ===================== -->
+<header class="landing-topbar">
+  <a class="landing-topbar__logo" routerLink="/">
+    <img src="assets/EQI-02.png" alt="eQi" width="48" height="48" />
+  </a>
+
+  <div class="landing-topbar__spacer"></div>
+
+  <div class="landing-topbar__actions">
+    @if (isLoggedIn()) {
+      <a class="landing-topbar__cta" mat-flat-button color="primary" routerLink="/book">
+        Reservar turno
+      </a>
+    } @else {
+      <a class="landing-topbar__cta" mat-flat-button color="primary" routerLink="/login">
+        Ingresar
+      </a>
+    }
+  </div>
+</header>
+
+<!-- ===================== HERO ===================== -->
+<section class="landing-hero">
+  <!-- Decorative pattern accent — very low opacity so it never competes with text -->
+  <div class="landing-hero__pattern" aria-hidden="true"></div>
+
+  <div class="landing-hero__content">
+    <img
+      class="landing-hero__logo"
+      src="assets/EQI-02.png"
+      alt="eQi – Especialidades Kinésicas"
+      width="180"
+      height="180"
+    />
+    <h1 class="landing-hero__title">eQi – Especialidades Kinésicas</h1>
+    <p class="landing-hero__tagline">
+      Centro de kinesiología y rehabilitación.<br />
+      Tu bienestar, nuestra prioridad.
+    </p>
+
+    @if (isLoggedIn()) {
+      <a class="landing-hero__btn" mat-raised-button color="primary" routerLink="/book">
+        Reservar turno
+      </a>
+    } @else {
+      <a class="landing-hero__btn" mat-raised-button color="primary" routerLink="/login">
+        Reservar turno
+      </a>
+    }
+
+    @if (!isLoggedIn()) {
+      <a class="landing-hero__pro-link" routerLink="/login">
+        ¿Sos profesional? Ingresá acá
+      </a>
+    }
+  </div>
+</section>
+
+<!-- ===================== SERVICIOS ===================== -->
+<section class="landing-services" id="servicios">
+  <h2 class="landing-services__heading">Nuestros servicios</h2>
+
+  @if (loadingServices()) {
+    <div class="landing-services__state">
+      <mat-spinner diameter="36" aria-label="Cargando servicios" />
+    </div>
+  } @else if (servicesError()) {
+    <p class="landing-services__state landing-services__state--error">
+      No pudimos cargar los servicios en este momento.
+    </p>
+  } @else if (services().length === 0) {
+    <p class="landing-services__state">
+      Próximamente publicaremos nuestros servicios.
+    </p>
+  } @else {
+    <div class="landing-services__grid">
+      @for (service of services(); track service.id) {
+        <article class="landing-services__card">
+          <h3 class="landing-services__card-name">{{ service.name }}</h3>
+          <span class="landing-services__card-duration">{{ service.durationMinutes }} min</span>
+        </article>
+      }
+    </div>
+  }
+</section>
+
+<!-- ===================== INFORMACIÓN / CONTACTO ===================== -->
+<section class="landing-contact" id="contacto">
+  <h2 class="landing-contact__heading">Información y contacto</h2>
+
+  <div class="landing-contact__grid">
+    <div class="landing-contact__info">
+      <div class="landing-contact__item">
+        <mat-icon class="landing-contact__icon" aria-hidden="true">location_on</mat-icon>
+        <div>
+          <span class="landing-contact__label">Dirección</span>
+          <span class="landing-contact__value">Amancay 450, Neuquén</span>
+        </div>
+      </div>
+
+      <div class="landing-contact__item">
+        <mat-icon class="landing-contact__icon" aria-hidden="true">smartphone</mat-icon>
+        <div>
+          <span class="landing-contact__label">WhatsApp / Teléfono</span>
+          <a
+            class="landing-contact__link"
+            href="https://wa.me/5492995227041"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            299 522 7041
+          </a>
+        </div>
+      </div>
+
+      <div class="landing-contact__item">
+        <mat-icon class="landing-contact__icon" aria-hidden="true">schedule</mat-icon>
+        <div>
+          <span class="landing-contact__label">Horarios</span>
+          <span class="landing-contact__value">
+            Lunes a viernes de 8:00 a 20:00<br />
+            Sábados de 9:00 a 12:00
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="landing-contact__map">
+      <iframe
+        src="https://www.google.com/maps?q=Amancay+450,+Neuqu%C3%A9n&output=embed"
+        width="100%"
+        height="300"
+        style="border: 0"
+        allowfullscreen
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+        title="Ubicación del consultorio"
+      ></iframe>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FOOTER ===================== -->
+<footer class="landing-footer">
+  <img class="landing-footer__logo" src="assets/EQI-02.png" alt="eQi" width="40" height="40" />
+  <p class="landing-footer__name">eQi – Especialidades Kinésicas</p>
+  <p class="landing-footer__copy">&copy; {{ currentYear }} eQi. Todos los derechos reservados.</p>
+  <p class="landing-footer__contact">Amancay 450, Neuquén &middot; 299 522 7041</p>
+</footer>
