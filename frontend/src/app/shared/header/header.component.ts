@@ -41,10 +41,12 @@ export class HeaderComponent {
   readonly user = this.authService.user;
   readonly isLoggedIn = this.authService.isLoggedIn;
   readonly role = this.authService.role;
+  readonly mustChangePassword = this.authService.mustChangePassword;
 
   readonly isMobile = signal(false);
 
   readonly navLinks = computed<NavLink[]>(() => {
+    if (this.mustChangePassword()) return [];
     const r = this.role();
     if (r === 'PATIENT') {
       return [

@@ -10,6 +10,7 @@ interface StoredUser {
   role: Role;
   firstName: string;
   lastName: string;
+  mustChangePassword: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -19,6 +20,7 @@ export class TokenStorageService {
   readonly user = this._user.asReadonly();
   readonly isLoggedIn = computed(() => !!this._user());
   readonly role = computed(() => this._user()?.role ?? null);
+  readonly mustChangePassword = computed(() => this._user()?.mustChangePassword ?? false);
 
   getToken(): string | null {
     return localStorage.getItem(TOKEN_KEY);
@@ -28,6 +30,14 @@ export class TokenStorageService {
     localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(USER_KEY, JSON.stringify(user));
     this._user.set(user);
+  }
+
+  updateMustChangePassword(value: boolean): void {
+    const current = this._user();
+    if (!current) return;
+    const updated = { ...current, mustChangePassword: value };
+    localStorage.setItem(USER_KEY, JSON.stringify(updated));
+    this._user.set(updated);
   }
 
   clear(): void {

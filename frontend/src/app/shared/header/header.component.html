@@ -55,10 +55,12 @@
 
     <mat-divider></mat-divider>
 
-    <button mat-menu-item routerLink="/change-password">
-      <mat-icon>lock</mat-icon>
-      <span>Cambiar contraseña</span>
-    </button>
+    @if (!mustChangePassword()) {
+      <button mat-menu-item routerLink="/change-password">
+        <mat-icon>lock</mat-icon>
+        <span>Cambiar contraseña</span>
+      </button>
+    }
     <button mat-menu-item (click)="logout()">
       <mat-icon>logout</mat-icon>
       <span>Cerrar sesión</span>
@@ -66,10 +68,12 @@
   </mat-menu>
 
   <mat-menu #userMenu="matMenu">
-    <button mat-menu-item routerLink="/change-password">
-      <mat-icon>lock</mat-icon>
-      <span>Cambiar contraseña</span>
-    </button>
+    @if (!mustChangePassword()) {
+      <button mat-menu-item routerLink="/change-password">
+        <mat-icon>lock</mat-icon>
+        <span>Cambiar contraseña</span>
+      </button>
+    }
     <button mat-menu-item (click)="logout()">
       <mat-icon>logout</mat-icon>
       <span>Cerrar sesión</span>
