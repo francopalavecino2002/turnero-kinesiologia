@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
+import { mustChangePasswordGuard } from './core/guards/must-change-password.guard';
 
 export const routes: Routes = [
   {
@@ -23,18 +24,19 @@ export const routes: Routes = [
   },
   {
     path: '',
+    canActivate: [mustChangePasswordGuard],
     loadComponent: () =>
       import('./pages/home/home.component').then((m) => m.HomeComponent),
   },
   {
     path: 'book',
-    canActivate: [authGuard, roleGuard('PATIENT')],
+    canActivate: [authGuard, roleGuard('PATIENT'), mustChangePasswordGuard],
     loadComponent: () =>
       import('./pages/book/book.component').then((m) => m.BookComponent),
   },
   {
     path: 'my-appointments',
-    canActivate: [authGuard, roleGuard('PATIENT')],
+    canActivate: [authGuard, roleGuard('PATIENT'), mustChangePasswordGuard],
     loadComponent: () =>
       import('./pages/my-appointments/my-appointments.component').then(
         (m) => m.MyAppointmentsComponent,
@@ -42,7 +44,7 @@ export const routes: Routes = [
   },
   {
     path: 'agenda',
-    canActivate: [authGuard, roleGuard('PROFESSIONAL', 'ADMIN')],
+    canActivate: [authGuard, roleGuard('PROFESSIONAL', 'ADMIN'), mustChangePasswordGuard],
     loadComponent: () =>
       import('./pages/agenda/agenda.component').then((m) => m.AgendaComponent),
   },

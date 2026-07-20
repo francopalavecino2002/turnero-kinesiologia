@@ -9,6 +9,7 @@ import {
   RegisterRequest,
   RegisterResponse,
   UserInfoResponse,
+  ChangePasswordRequest,
   Role,
 } from '../models';
 import { TokenStorageService } from './token-storage.service';
@@ -24,6 +25,7 @@ export class AuthService {
   readonly user = this.tokenStorage.user;
   readonly isLoggedIn = this.tokenStorage.isLoggedIn;
   readonly role = this.tokenStorage.role;
+  readonly mustChangePassword = this.tokenStorage.mustChangePassword;
 
   register(request: RegisterRequest) {
     return this.http.post<RegisterResponse>(`${this.apiUrl}/register`, request);
@@ -38,6 +40,7 @@ export class AuthService {
           role: response.role,
           firstName: response.firstName,
           lastName: response.lastName,
+          mustChangePassword: response.mustChangePassword,
         });
       }),
     );
@@ -46,6 +49,14 @@ export class AuthService {
   logout(): void {
     this.tokenStorage.clear();
     this.router.navigate(['/login']);
+  }
+
+  changePassword(request: ChangePasswordRequest) {
+    return this.http.post<void>(`${this.apiUrl}/change-password`, request).pipe(
+      tap(() => {
+        this.tokenStorage.updateMustChangePassword(false);
+      }),
+    );
   }
 
   getCurrentUser() {
