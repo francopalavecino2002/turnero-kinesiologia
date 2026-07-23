@@ -225,7 +225,7 @@ class AppointmentBookingIntegrationTest {
     void returns409WhenProfessionalHasOverlappingActiveAppointment() throws Exception {
         LocalDateTime existingStart = LocalDateTime.of(bookingDate, LocalTime.of(9, 0));
         appointmentRepository.save(new Appointment(patient, professional, generalService, existingStart,
-                AppointmentStatus.BOOKED));
+                AppointmentStatus.BOOKED, generalService.getDurationMinutes()));
 
         LocalDateTime overlappingStart = LocalDateTime.of(bookingDate, LocalTime.of(9, 30));
         CreateAppointmentRequest body = request(professional.getId(), generalService.getId(), overlappingStart);
@@ -253,9 +253,9 @@ class AppointmentBookingIntegrationTest {
 
         LocalDateTime slotStart = LocalDateTime.of(bookingDate, LocalTime.of(9, 0));
         appointmentRepository.save(new Appointment(patient, professional, generalService, slotStart,
-                AppointmentStatus.BOOKED));
+                AppointmentStatus.BOOKED, generalService.getDurationMinutes()));
         appointmentRepository.save(new Appointment(patient, professional2, generalService, slotStart,
-                AppointmentStatus.CONFIRMED));
+                AppointmentStatus.CONFIRMED, generalService.getDurationMinutes()));
 
         CreateAppointmentRequest body = request(professional3.getId(), generalService.getId(), slotStart);
 
@@ -270,7 +270,7 @@ class AppointmentBookingIntegrationTest {
     void cancelledAppointmentDoesNotBlockNewBookingAtSameTime() throws Exception {
         LocalDateTime slotStart = LocalDateTime.of(bookingDate, LocalTime.of(9, 0));
         appointmentRepository.save(new Appointment(patient, professional, generalService, slotStart,
-                AppointmentStatus.CANCELLED));
+                AppointmentStatus.CANCELLED, generalService.getDurationMinutes()));
 
         CreateAppointmentRequest body = request(professional.getId(), generalService.getId(), slotStart);
 

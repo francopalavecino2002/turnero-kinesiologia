@@ -273,7 +273,7 @@ public class AppointmentService {
             throw new ConflictException("The clinic is at full capacity at " + dateTime);
         }
 
-        Appointment appointment = new Appointment(patient, professional, service, dateTime, AppointmentStatus.BOOKED);
+        Appointment appointment = new Appointment(patient, professional, service, dateTime, AppointmentStatus.BOOKED, service.getDurationMinutes());
         appointment = appointmentRepository.save(appointment);
 
         return AppointmentMapper.toResponse(appointmentRepository.findByIdWithDetails(appointment.getId())

@@ -17,7 +17,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             WHERE a.professional = :professional
               AND a.status <> com.palavecino.backend.appointment.AppointmentStatus.CANCELLED
               AND a.dateTime < :rangeEnd
-              AND timestampadd(MINUTE, a.service.durationMinutes, a.dateTime) > :rangeStart
+              AND timestampadd(MINUTE, a.durationMinutes, a.dateTime) > :rangeStart
             """)
     List<Appointment> findOverlappingByProfessional(
             @Param("professional") Professional professional,
@@ -75,7 +75,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             SELECT a FROM Appointment a
             WHERE a.status <> com.palavecino.backend.appointment.AppointmentStatus.CANCELLED
               AND a.dateTime < :rangeEnd
-              AND timestampadd(MINUTE, a.service.durationMinutes, a.dateTime) > :rangeStart
+              AND timestampadd(MINUTE, a.durationMinutes, a.dateTime) > :rangeStart
             """)
     List<Appointment> findOverlappingAll(
             @Param("rangeStart") LocalDateTime rangeStart,
@@ -88,7 +88,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
                 com.palavecino.backend.appointment.AppointmentStatus.CONFIRMED
             )
               AND a.dateTime < :rangeEnd
-              AND timestampadd(MINUTE, a.service.durationMinutes, a.dateTime) > :rangeStart
+              AND timestampadd(MINUTE, a.durationMinutes, a.dateTime) > :rangeStart
             """)
     long countOverlappingActive(
             @Param("rangeStart") LocalDateTime rangeStart,
@@ -102,7 +102,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
                   com.palavecino.backend.appointment.AppointmentStatus.CONFIRMED
               )
               AND a.dateTime < :rangeEnd
-              AND timestampadd(MINUTE, a.service.durationMinutes, a.dateTime) > :rangeStart
+              AND timestampadd(MINUTE, a.durationMinutes, a.dateTime) > :rangeStart
             """)
     List<Appointment> findOverlappingActiveByService(
             @Param("service") Service service,
@@ -117,7 +117,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
                   com.palavecino.backend.appointment.AppointmentStatus.CONFIRMED
               )
               AND a.dateTime < :rangeEnd
-              AND timestampadd(MINUTE, a.service.durationMinutes, a.dateTime) > :rangeStart
+              AND timestampadd(MINUTE, a.durationMinutes, a.dateTime) > :rangeStart
             """)
     long countOverlappingActiveExcludingServices(
             @Param("rangeStart") LocalDateTime rangeStart,

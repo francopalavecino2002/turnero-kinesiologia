@@ -64,7 +64,7 @@ class AppointmentRepositoryTest {
 
     private Appointment appointmentAt(Professional professional, Patient patient, Service service,
                                        LocalDateTime dateTime, AppointmentStatus status) {
-        Appointment appointment = new Appointment(patient, professional, service, dateTime, status);
+        Appointment appointment = new Appointment(patient, professional, service, dateTime, status, service.getDurationMinutes());
         entityManager.persist(appointment);
         return appointment;
     }
