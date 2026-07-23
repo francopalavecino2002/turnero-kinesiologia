@@ -12,7 +12,30 @@ Full-stack appointment booking system for physiotherapy clinics — patient self
 
 ## Live Demo
 
-_Deployed URL coming soon._
+- **Frontend (app):** https://turnero-kinesiologia-murex.vercel.app
+- **Backend API:** https://turnero-backend-vmme.onrender.com/api/services (public endpoint)
+
+> **Note:** The backend runs on Render's free tier, which suspends instances after 15 minutes of inactivity. The first request after an idle period may take 30–60 seconds while the service spins back up (cold start). Subsequent requests are fast.
+
+### Demo credentials
+
+A seeded patient account is available for quick testing without registration:
+
+| Email | Password | Role |
+|-------|----------|------|
+| `juan.perez@example.com` | `changeme123` | PATIENT |
+
+These are dev-profile seed data credentials intended for evaluation purposes.
+
+## Deployment
+
+| Layer | Service | Details |
+|-------|---------|---------|
+| **Frontend** | [Vercel](https://vercel.com) | Angular SPA, built with `build.sh` |
+| **Backend** | [Render](https://render.com) | Dockerized Spring Boot (multi-stage Dockerfile) |
+| **Database** | [Neon](https://neon.tech) | Serverless PostgreSQL |
+
+The frontend cannot hardcode the backend URL because it differs between local development and production. Instead, `environment.prod.ts` contains a `__API_URL__` placeholder that is replaced at build time by `frontend/build.sh` using `sed` with the `API_URL` environment variable. Vercel is configured to run `cd frontend && bash build.sh` as its build command, and `API_URL` is set in Vercel's environment variables to point to the Render backend URL.
 
 ## Screenshots
 
