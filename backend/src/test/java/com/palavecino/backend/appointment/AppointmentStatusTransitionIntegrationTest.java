@@ -94,7 +94,7 @@ class AppointmentStatusTransitionIntegrationTest {
     }
 
     private Appointment createAppointment(AppointmentStatus status, LocalDateTime dateTime) {
-        return appointmentRepository.save(new Appointment(patient, professional, service, dateTime, status));
+        return appointmentRepository.save(new Appointment(patient, professional, service, dateTime, status, service.getDurationMinutes()));
     }
 
     // ---- valid transitions ----

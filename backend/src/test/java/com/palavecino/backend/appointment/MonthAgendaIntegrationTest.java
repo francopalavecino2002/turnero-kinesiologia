@@ -86,18 +86,18 @@ class MonthAgendaIntegrationTest {
         // professionalA: active on day 5, cancelled on day 15, active on day 20
         appointmentRepository.save(new Appointment(patientA, professionalA, service,
                 LocalDateTime.of(firstDay.withDayOfMonth(5), LocalTime.of(9, 0)),
-                AppointmentStatus.BOOKED));
+                AppointmentStatus.BOOKED, service.getDurationMinutes()));
         appointmentRepository.save(new Appointment(patientA, professionalA, service,
                 LocalDateTime.of(firstDay.withDayOfMonth(15), LocalTime.of(9, 0)),
-                AppointmentStatus.CANCELLED));
+                AppointmentStatus.CANCELLED, service.getDurationMinutes()));
         appointmentRepository.save(new Appointment(patientA, professionalA, service,
                 LocalDateTime.of(firstDay.withDayOfMonth(20), LocalTime.of(9, 0)),
-                AppointmentStatus.CONFIRMED));
+                AppointmentStatus.CONFIRMED, service.getDurationMinutes()));
 
         // professionalB: active on day 10
         appointmentRepository.save(new Appointment(patientA, professionalB, service,
                 LocalDateTime.of(firstDay.withDayOfMonth(10), LocalTime.of(10, 0)),
-                AppointmentStatus.BOOKED));
+                AppointmentStatus.BOOKED, service.getDurationMinutes()));
     }
 
     private static String unique(String prefix) {

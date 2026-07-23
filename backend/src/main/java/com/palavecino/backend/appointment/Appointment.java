@@ -43,16 +43,20 @@ public class Appointment {
     @Column(nullable = false)
     private AppointmentStatus status;
 
+    @Column(name = "duration_minutes", nullable = false)
+    private Integer durationMinutes;
+
     protected Appointment() {
     }
 
     public Appointment(Patient patient, Professional professional, Service service,
-                        LocalDateTime dateTime, AppointmentStatus status) {
+                        LocalDateTime dateTime, AppointmentStatus status, int durationMinutes) {
         this.patient = patient;
         this.professional = professional;
         this.service = service;
         this.dateTime = dateTime;
         this.status = status;
+        this.durationMinutes = durationMinutes;
     }
 
     public Long getId() {
@@ -97,5 +101,13 @@ public class Appointment {
 
     public void setStatus(AppointmentStatus status) {
         this.status = status;
+    }
+
+    public Integer getDurationMinutes() {
+        return durationMinutes;
+    }
+
+    public void setDurationMinutes(Integer durationMinutes) {
+        this.durationMinutes = durationMinutes;
     }
 }

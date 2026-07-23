@@ -118,9 +118,9 @@ class AppointmentAuthorizationIntegrationTest {
                 LocalTime.of(9, 0), LocalTime.of(12, 0)));
 
         appointmentA = appointmentRepository.save(new Appointment(patientA, professionalA, service,
-                LocalDateTime.of(bookingDate, LocalTime.of(9, 0)), AppointmentStatus.BOOKED));
+                LocalDateTime.of(bookingDate, LocalTime.of(9, 0)), AppointmentStatus.BOOKED, service.getDurationMinutes()));
         appointmentB = appointmentRepository.save(new Appointment(patientB, professionalB, service,
-                LocalDateTime.of(bookingDate, LocalTime.of(9, 0)), AppointmentStatus.BOOKED));
+                LocalDateTime.of(bookingDate, LocalTime.of(9, 0)), AppointmentStatus.BOOKED, service.getDurationMinutes()));
     }
 
     private static String unique(String prefix) {

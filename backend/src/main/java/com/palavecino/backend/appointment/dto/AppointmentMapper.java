@@ -14,7 +14,7 @@ public final class AppointmentMapper {
                 appointment.getDateTime(),
                 appointment.getStatus(),
                 appointment.getService().getName(),
-                appointment.getService().getDurationMinutes(),
+                appointment.getDurationMinutes(),
                 appointment.getProfessional().getFirstName(),
                 appointment.getProfessional().getLastName(),
                 appointment.getPatient().getFirstName(),
@@ -25,7 +25,7 @@ public final class AppointmentMapper {
         return new AgendaEntryResponse(
                 appointment.getId(),
                 appointment.getDateTime(),
-                appointment.getDateTime().plusMinutes(appointment.getService().getDurationMinutes()),
+                appointment.getDateTime().plusMinutes(appointment.getDurationMinutes()),
                 appointment.getService().getName(),
                 appointment.getProfessional().getId(),
                 appointment.getProfessional().getFirstName(),
@@ -40,7 +40,7 @@ public final class AppointmentMapper {
         return new AgendaEntryResponse(
                 null,
                 appointment.getDateTime(),
-                appointment.getDateTime().plusMinutes(appointment.getService().getDurationMinutes()),
+                appointment.getDateTime().plusMinutes(appointment.getDurationMinutes()),
                 appointment.getService().getName(),
                 appointment.getProfessional().getId(),
                 appointment.getProfessional().getFirstName(),
