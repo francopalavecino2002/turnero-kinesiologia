@@ -7,10 +7,16 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
+import jakarta.persistence.LockModeType;
 
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
+
+    @Query(value = "SELECT pg_advisory_xact_lock(:lockId)", nativeQuery = true)
+    void acquireAdvisoryLock(@Param("lockId") int lockId);
 
     @Query("""
             SELECT a FROM Appointment a
@@ -20,6 +26,20 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
               AND timestampadd(MINUTE, a.durationMinutes, a.dateTime) > :rangeStart
             """)
     List<Appointment> findOverlappingByProfessional(
+            @Param("professional") Professional professional,
+            @Param("rangeStart") LocalDateTime rangeStart,
+            @Param("rangeEnd") LocalDateTime rangeEnd);
+
+    @Query("""
+            SELECT a FROM Appointment a
+            WHERE a.professional = :professional
+              AND a.status <> com.palavecino.backend.appointment.AppointmentStatus.CANCELLED
+              AND a.dateTime < :rangeEnd
+              AND timestampadd(MINUTE, a.durationMinutes, a.dateTime) > :rangeStart
+            """)
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Transactional
+    List<Appointment> findOverlappingByProfessionalForUpdate(
             @Param("professional") Professional professional,
             @Param("rangeStart") LocalDateTime rangeStart,
             @Param("rangeEnd") LocalDateTime rangeEnd);
@@ -96,6 +116,21 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     @Query("""
             SELECT a FROM Appointment a
+            WHERE a.status IN (
+                com.palavecino.backend.appointment.AppointmentStatus.BOOKED,
+                com.palavecino.backend.appointment.AppointmentStatus.CONFIRMED
+            )
+              AND a.dateTime < :rangeEnd
+              AND timestampadd(MINUTE, a.durationMinutes, a.dateTime) > :rangeStart
+            """)
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Transactional
+    List<Appointment> findOverlappingActiveForUpdate(
+            @Param("rangeStart") LocalDateTime rangeStart,
+            @Param("rangeEnd") LocalDateTime rangeEnd);
+
+    @Query("""
+            SELECT a FROM Appointment a
             WHERE a.service = :service
               AND a.status IN (
                   com.palavecino.backend.appointment.AppointmentStatus.BOOKED,
@@ -105,6 +140,23 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
               AND timestampadd(MINUTE, a.durationMinutes, a.dateTime) > :rangeStart
             """)
     List<Appointment> findOverlappingActiveByService(
+            @Param("service") Service service,
+            @Param("rangeStart") LocalDateTime rangeStart,
+            @Param("rangeEnd") LocalDateTime rangeEnd);
+
+    @Query("""
+            SELECT a FROM Appointment a
+            WHERE a.service = :service
+              AND a.status IN (
+                  com.palavecino.backend.appointment.AppointmentStatus.BOOKED,
+                  com.palavecino.backend.appointment.AppointmentStatus.CONFIRMED
+              )
+              AND a.dateTime < :rangeEnd
+              AND timestampadd(MINUTE, a.durationMinutes, a.dateTime) > :rangeStart
+            """)
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Transactional
+    List<Appointment> findOverlappingActiveByServiceForUpdate(
             @Param("service") Service service,
             @Param("rangeStart") LocalDateTime rangeStart,
             @Param("rangeEnd") LocalDateTime rangeEnd);
@@ -120,6 +172,23 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
               AND timestampadd(MINUTE, a.durationMinutes, a.dateTime) > :rangeStart
             """)
     long countOverlappingActiveExcludingServices(
+            @Param("rangeStart") LocalDateTime rangeStart,
+            @Param("rangeEnd") LocalDateTime rangeEnd,
+            @Param("excludedServiceIds") List<Long> excludedServiceIds);
+
+    @Query("""
+            SELECT a FROM Appointment a
+            WHERE a.service.id NOT IN :excludedServiceIds
+              AND a.status IN (
+                  com.palavecino.backend.appointment.AppointmentStatus.BOOKED,
+                  com.palavecino.backend.appointment.AppointmentStatus.CONFIRMED
+              )
+              AND a.dateTime < :rangeEnd
+              AND timestampadd(MINUTE, a.durationMinutes, a.dateTime) > :rangeStart
+            """)
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Transactional
+    List<Appointment> findOverlappingActiveExcludingServicesForUpdate(
             @Param("rangeStart") LocalDateTime rangeStart,
             @Param("rangeEnd") LocalDateTime rangeEnd,
             @Param("excludedServiceIds") List<Long> excludedServiceIds);
