@@ -241,6 +241,9 @@ public class AppointmentService {
         LocalDateTime dateTime = request.dateTime();
         LocalDateTime rangeEnd = dateTime.plusMinutes(service.getDurationMinutes());
 
+        appointmentRepository.acquireAdvisoryLock(professional.getId().intValue());
+        appointmentRepository.acquireAdvisoryLock(0);
+
         com.palavecino.backend.availability.DayOfWeek dayOfWeek = toDayOfWeek(dateTime.toLocalDate());
         List<Availability> availabilities = availabilityRepository.findByProfessionalAndDayOfWeek(
                 professional, dayOfWeek);
@@ -256,7 +259,7 @@ public class AppointmentService {
         }
 
         boolean professionalBusy = !appointmentRepository
-                .findOverlappingByProfessional(professional, dateTime, rangeEnd)
+                .findOverlappingByProfessionalForUpdate(professional, dateTime, rangeEnd)
                 .isEmpty();
         if (professionalBusy) {
             throw new ConflictException(
@@ -386,7 +389,7 @@ public class AppointmentService {
 
         if (matchesBlockService) {
             boolean boxTaken = !appointmentRepository
-                    .findOverlappingActiveByService(service, rangeStart, rangeEnd)
+                    .findOverlappingActiveByServiceForUpdate(service, rangeStart, rangeEnd)
                     .isEmpty();
             return new CapacityCheckResult(boxTaken, true);
         }
@@ -399,8 +402,8 @@ public class AppointmentService {
                 .toList();
 
         long generalCount = blockServiceIds.isEmpty()
-                ? appointmentRepository.countOverlappingActive(rangeStart, rangeEnd)
-                : appointmentRepository.countOverlappingActiveExcludingServices(rangeStart, rangeEnd, blockServiceIds);
+                ? appointmentRepository.findOverlappingActiveForUpdate(rangeStart, rangeEnd).size()
+                : appointmentRepository.findOverlappingActiveExcludingServicesForUpdate(rangeStart, rangeEnd, blockServiceIds).size();
 
         int effectiveCapacity = maxConcurrentAppointments - overlappingBlocks.size();
         return new CapacityCheckResult(generalCount >= effectiveCapacity, false);
