@@ -1,0 +1,245 @@
+<div class="admin-professionals">
+  <div class="admin-professionals__header">
+    <h1 class="admin-professionals__title">Profesionales</h1>
+    <div class="admin-professionals__actions">
+      <mat-slide-toggle
+        [checked]="includeInactive()"
+        (change)="toggleIncludeInactive()"
+      >
+        Mostrar inactivos
+      </mat-slide-toggle>
+      <button mat-raised-button color="primary" (click)="openCreateForm()">
+        <mat-icon>add</mat-icon>
+        Nuevo profesional
+      </button>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="admin-professionals__loading">
+      <mat-progress-spinner mode="indeterminate" diameter="40" />
+    </div>
+  } @else if (professionals().length === 0) {
+    <div class="admin-professionals__empty">
+      <mat-icon>people</mat-icon>
+      <p>No hay profesionales para mostrar</p>
+    </div>
+  } @else {
+    <div class="admin-professionals__table-wrap">
+      <table class="admin-professionals__table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Servicios</th>
+            <th>Estado</th>
+            <th class="admin-professionals__th-actions">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (pro of professionals(); track pro.id) {
+            <tr [class.admin-professionals__row--inactive]="!pro.active">
+              <td class="admin-professionals__td-name">
+                {{ pro.firstName }} {{ pro.lastName }}
+              </td>
+              <td class="admin-professionals__td-email">{{ pro.email }}</td>
+              <td>
+                @if (pro.services.length === 0) {
+                  <span class="admin-professionals__no-services">—</span>
+                } @else {
+                  <div class="admin-professionals__services-list">
+                    @for (svc of pro.services; track svc.id) {
+                      <span class="admin-professionals__service-chip">{{
+                        svc.name
+                      }}</span>
+                    }
+                  </div>
+                }
+              </td>
+              <td>
+                <span
+                  class="admin-professionals__badge"
+                  [class.admin-professionals__badge--active]="pro.active"
+                  [class.admin-professionals__badge--inactive]="!pro.active"
+                >
+                  {{ pro.active ? "Activo" : "Inactivo" }}
+                </span>
+              </td>
+              <td class="admin-professionals__td-actions">
+                <button
+                  mat-icon-button
+                  color="primary"
+                  matTooltip="Editar"
+                  (click)="openEditForm(pro)"
+                >
+                  <mat-icon>edit</mat-icon>
+                </button>
+                @if (pro.active) {
+                  <button
+                    mat-icon-button
+                    color="warn"
+                    matTooltip="Desactivar"
+                    (click)="deactivate(pro)"
+                  >
+                    <mat-icon>block</mat-icon>
+                  </button>
+                } @else {
+                  <button
+                    mat-icon-button
+                    color="accent"
+                    matTooltip="Reactivar"
+                    (click)="reactivate(pro)"
+                  >
+                    <mat-icon>replay</mat-icon>
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  @if (showForm()) {
+    <div class="admin-professionals__overlay" (click)="cancelForm()">
+      <div class="admin-professionals__modal" (click)="$event.stopPropagation()">
+        <h2 class="admin-professionals__modal-title">
+          {{ isEditing ? "Editar profesional" : "Nuevo profesional" }}
+        </h2>
+
+        @if (errorMessage(); as message) {
+          <div class="eqi-error" role="alert">
+            <mat-icon aria-hidden="true">error_outline</mat-icon>
+            <span>{{ message }}</span>
+          </div>
+        }
+
+        <form
+          class="admin-professionals__form"
+          [formGroup]="form"
+          (ngSubmit)="save()"
+          novalidate
+        >
+          <mat-form-field appearance="outline">
+            <mat-label>Nombre</mat-label>
+            <input
+              matInput
+              formControlName="firstName"
+              maxlength="100"
+              required
+            />
+            @if (form.controls.firstName.hasError("required")) {
+              <mat-error>Ingresá el nombre</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Apellido</mat-label>
+            <input
+              matInput
+              formControlName="lastName"
+              maxlength="100"
+              required
+            />
+            @if (form.controls.lastName.hasError("required")) {
+              <mat-error>Ingresá el apellido</mat-error>
+            }
+          </mat-form-field>
+
+          @if (!isEditing) {
+            <mat-form-field appearance="outline">
+              <mat-label>Email</mat-label>
+              <input
+                matInput
+                formControlName="email"
+                type="email"
+                required
+              />
+              @if (form.controls.email.hasError("required")) {
+                <mat-error>Ingresá el email</mat-error>
+              } @else if (form.controls.email.hasError("email")) {
+                <mat-error>Email inválido</mat-error>
+              }
+            </mat-form-field>
+          }
+
+          <mat-form-field appearance="outline">
+            <mat-label>Servicios</mat-label>
+            <mat-select multiple formControlName="serviceIds">
+              @for (svc of availableServices(); track svc.id) {
+                <mat-option [value]="svc.id">{{ svc.name }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <div class="admin-professionals__form-actions">
+            <button
+              mat-button
+              type="button"
+              (click)="cancelForm()"
+              [disabled]="saving()"
+            >
+              Cancelar
+            </button>
+            <button
+              mat-raised-button
+              color="primary"
+              type="submit"
+              [disabled]="saving()"
+            >
+              @if (saving()) {
+                <mat-progress-spinner mode="indeterminate" diameter="20" />
+              } @else {
+                {{ isEditing ? "Guardar cambios" : "Crear profesional" }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  @if (showPasswordModal()) {
+    <div class="admin-professionals__overlay admin-professionals__overlay--persistent">
+      <div
+        class="admin-professionals__password-modal"
+        (click)="$event.stopPropagation()"
+      >
+        <mat-icon class="admin-professionals__password-icon">vpn_key</mat-icon>
+        <h2 class="admin-professionals__password-title">
+          Profesional creado exitosamente
+        </h2>
+        <p class="admin-professionals__password-desc">
+          Esta es la contraseña temporal del profesional.
+          <strong>No se va a volver a mostrar.</strong>
+          Comunicásela de forma segura (WhatsApp, email interno, etc.).
+        </p>
+        <div class="admin-professionals__password-box">
+          <code class="admin-professionals__password-value">
+            {{ createdProfessional()?.temporaryPassword }}
+          </code>
+        </div>
+        <div class="admin-professionals__password-actions">
+          <button
+            mat-stroked-button
+            color="primary"
+            (click)="copyPassword()"
+          >
+            <mat-icon>
+              {{ passwordCopied() ? "check" : "content_copy" }}
+            </mat-icon>
+            {{ passwordCopied() ? "Copiada" : "Copiar contraseña" }}
+          </button>
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="closePasswordModal()"
+          >
+            Ya lo copié
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

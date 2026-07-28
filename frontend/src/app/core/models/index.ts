@@ -144,6 +144,32 @@ export interface ServiceUpdateRequest {
   durationMinutes: number;
 }
 
+export interface ProfessionalAdmin {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  active: boolean;
+  services: ServiceAdmin[];
+}
+
+export interface ProfessionalCreatedResponse extends ProfessionalAdmin {
+  temporaryPassword: string;
+}
+
+export interface ProfessionalCreateRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  serviceIds: number[];
+}
+
+export interface ProfessionalUpdateRequest {
+  firstName: string;
+  lastName: string;
+  serviceIds: number[];
+}
+
 export interface JwtPayload {
   sub: string;
   role: Role;

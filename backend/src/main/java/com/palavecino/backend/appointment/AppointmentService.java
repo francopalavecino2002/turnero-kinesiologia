@@ -228,6 +228,11 @@ public class AppointmentService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Professional not found with id " + request.professionalId()));
 
+        if (!professional.getUser().isActive()) {
+            throw new BusinessRuleViolationException(
+                    "Este profesional no está disponible actualmente.");
+        }
+
         Service service = serviceRepository.findById(request.serviceId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Service not found with id " + request.serviceId()));

@@ -8,6 +8,7 @@ import com.palavecino.backend.auth.dto.LoginRequest;
 import com.palavecino.backend.auth.dto.RegisterRequest;
 import com.palavecino.backend.patient.Patient;
 import com.palavecino.backend.patient.PatientRepository;
+import com.palavecino.backend.user.Role;
 import com.palavecino.backend.user.User;
 import com.palavecino.backend.user.UserRepository;
 import io.jsonwebtoken.Jwts;
@@ -24,6 +25,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
@@ -56,6 +58,12 @@ class AuthIntegrationTest {
 
     @Autowired
     private PatientRepository patientRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private com.palavecino.backend.security.JwtService jwtService;
 
     @Value("${jwt.secret}")
     private String jwtSecret;
@@ -321,6 +329,70 @@ class AuthIntegrationTest {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/auth/me")
                         .header("Authorization", "Bearer " + expiredToken))
                 .andExpect(MockMvcResultMatchers.status().isUnauthorized());
+    }
+
+    // ---- inactive account ----
+
+    @Test
+    void loginWithInactiveAccountReturnsSameGenericMessage() throws Exception {
+        User inactiveUser = userRepository.save(
+                new User(unique("inactive") + "@example.com", passwordEncoder.encode("password123"), Role.PATIENT, false));
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new LoginRequest(inactiveUser.getEmail(), "password123"))))
+                .andExpect(MockMvcResultMatchers.status().isUnauthorized())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.message").value("Invalid email or password"));
+    }
+
+    @Test
+    void jwtFromDeactivatedAccountIsRejectedOnAuthenticatedEndpoint() throws Exception {
+        User user = userRepository.save(
+                new User(unique("deactjwt") + "@example.com", passwordEncoder.encode("password123"), Role.PATIENT, true));
+
+        String token = jwtService.generateToken(user);
+
+        // Confirm token works while active
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/auth/me")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        // Deactivate
+        user.setActive(false);
+        userRepository.save(user);
+
+        // Same token should now be rejected
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/auth/me")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(MockMvcResultMatchers.status().isUnauthorized())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.message").value(
+                        "Cuenta desactivada. Contactá al administrador del consultorio."));
+    }
+
+    @Test
+    void reactivatedAccountCanLoginAgain() throws Exception {
+        User user = userRepository.save(
+                new User(unique("react") + "@example.com", passwordEncoder.encode("password123"), Role.PATIENT, false));
+
+        // Login while inactive → rejected
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new LoginRequest(user.getEmail(), "password123"))))
+                .andExpect(MockMvcResultMatchers.status().isUnauthorized());
+
+        // Reactivate
+        user.setActive(true);
+        userRepository.save(user);
+
+        // Login after reactivation → works
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new LoginRequest(user.getEmail(), "password123"))))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.token").isNotEmpty());
     }
 
     // ---- bootstrap admin ----
