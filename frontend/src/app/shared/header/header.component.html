@@ -19,32 +19,49 @@
 
   <div class="eqi-header__spacer"></div>
 
-  <span class="eqi-header__user-name">{{ displayName() }}</span>
+  @if (isLoggedIn()) {
+    <span class="eqi-header__user-name">{{ displayName() }}</span>
 
-  @if (isMobile()) {
-    <button
-      class="eqi-header__menu-btn"
-      mat-icon-button
-      [matMenuTriggerFor]="mobileNavMenu"
-      aria-label="Abrir menú de navegación"
-    >
-      <mat-icon>menu</mat-icon>
-    </button>
+    @if (isMobile()) {
+      <button
+        class="eqi-header__menu-btn"
+        mat-icon-button
+        [matMenuTriggerFor]="mobileNavMenu"
+        aria-label="Abrir menú de navegación"
+      >
+        <mat-icon>menu</mat-icon>
+      </button>
+    } @else {
+      <button
+        class="eqi-header__avatar"
+        [matMenuTriggerFor]="userMenu"
+        aria-label="Menú de usuario"
+      >
+        {{ userInitial() }}
+      </button>
+    }
   } @else {
-    <button
-      class="eqi-header__avatar"
-      [matMenuTriggerFor]="userMenu"
-      aria-label="Menú de usuario"
-    >
-      {{ userInitial() }}
-    </button>
+    @if (isMobile()) {
+      <button
+        class="eqi-header__menu-btn"
+        mat-icon-button
+        [matMenuTriggerFor]="mobileNavMenu"
+        aria-label="Abrir menú de navegación"
+      >
+        <mat-icon>menu</mat-icon>
+      </button>
+    } @else {
+      <a mat-stroked-button routerLink="/login">Ingresar</a>
+    }
   }
 
   <mat-menu #mobileNavMenu="matMenu" class="eqi-mobile-nav-menu">
-    <div class="eqi-mobile-nav-menu__header">
-      <span class="eqi-mobile-nav-menu__user-name">{{ displayName() }}</span>
-      <span class="eqi-mobile-nav-menu__user-role">{{ role() }}</span>
-    </div>
+    @if (isLoggedIn()) {
+      <div class="eqi-mobile-nav-menu__header">
+        <span class="eqi-mobile-nav-menu__user-name">{{ displayName() }}</span>
+        <span class="eqi-mobile-nav-menu__user-role">{{ role() }}</span>
+      </div>
+    }
 
     @for (link of navLinks(); track link.route) {
       <button mat-menu-item [routerLink]="link.route">
@@ -55,28 +72,37 @@
 
     <mat-divider></mat-divider>
 
-    @if (!mustChangePassword()) {
-      <button mat-menu-item routerLink="/change-password">
-        <mat-icon>lock</mat-icon>
-        <span>Cambiar contraseña</span>
+    @if (isLoggedIn()) {
+      @if (!mustChangePassword()) {
+        <button mat-menu-item routerLink="/change-password">
+          <mat-icon>lock</mat-icon>
+          <span>Cambiar contraseña</span>
+        </button>
+      }
+      <button mat-menu-item (click)="logout()">
+        <mat-icon>logout</mat-icon>
+        <span>Cerrar sesión</span>
+      </button>
+    } @else {
+      <button mat-menu-item routerLink="/login">
+        <mat-icon>login</mat-icon>
+        <span>Ingresar</span>
       </button>
     }
-    <button mat-menu-item (click)="logout()">
-      <mat-icon>logout</mat-icon>
-      <span>Cerrar sesión</span>
-    </button>
   </mat-menu>
 
-  <mat-menu #userMenu="matMenu">
-    @if (!mustChangePassword()) {
-      <button mat-menu-item routerLink="/change-password">
-        <mat-icon>lock</mat-icon>
-        <span>Cambiar contraseña</span>
+  @if (isLoggedIn()) {
+    <mat-menu #userMenu="matMenu">
+      @if (!mustChangePassword()) {
+        <button mat-menu-item routerLink="/change-password">
+          <mat-icon>lock</mat-icon>
+          <span>Cambiar contraseña</span>
+        </button>
+      }
+      <button mat-menu-item (click)="logout()">
+        <mat-icon>logout</mat-icon>
+        <span>Cerrar sesión</span>
       </button>
-    }
-    <button mat-menu-item (click)="logout()">
-      <mat-icon>logout</mat-icon>
-      <span>Cerrar sesión</span>
-    </button>
-  </mat-menu>
+    </mat-menu>
+  }
 </header>

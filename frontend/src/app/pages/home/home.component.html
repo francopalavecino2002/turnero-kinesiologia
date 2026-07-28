@@ -1,23 +1,19 @@
-<!-- ===================== LANDING TOP BAR ===================== -->
-<header class="landing-topbar">
-  <a class="landing-topbar__logo" routerLink="/">
-    <img src="assets/EQI-02.png" alt="eQi" width="48" height="48" />
-  </a>
+<!-- ===================== LANDING TOP BAR (solo visitantes) ===================== -->
+@if (!isLoggedIn()) {
+  <header class="landing-topbar">
+    <a class="landing-topbar__logo" routerLink="/">
+      <img src="assets/EQI-02.png" alt="eQi" width="48" height="48" />
+    </a>
 
-  <div class="landing-topbar__spacer"></div>
+    <div class="landing-topbar__spacer"></div>
 
-  <div class="landing-topbar__actions">
-    @if (isLoggedIn()) {
-      <a class="landing-topbar__cta" mat-flat-button color="primary" routerLink="/book">
-        Reservar turno
-      </a>
-    } @else {
+    <div class="landing-topbar__actions">
       <a class="landing-topbar__cta" mat-flat-button color="primary" routerLink="/login">
         Ingresar
       </a>
-    }
-  </div>
-</header>
+    </div>
+  </header>
+}
 
 <!-- ===================== HERO ===================== -->
 <section class="landing-hero">
