@@ -10,4 +10,9 @@ public final class ServiceMapper {
     public static ServiceResponse toResponse(Service service) {
         return new ServiceResponse(service.getId(), service.getName(), service.getDurationMinutes());
     }
+
+    public static ServiceAdminResponse toAdminResponse(Service service) {
+        return new ServiceAdminResponse(service.getId(), service.getName(),
+                service.getDurationMinutes(), service.isActive());
+    }
 }

@@ -132,6 +132,18 @@ export interface MonthSummaryResponse {
   days: MonthDaySummary[];
 }
 
+export type ServiceAdmin = Service;
+
+export interface ServiceCreateRequest {
+  name: string;
+  durationMinutes: number;
+}
+
+export interface ServiceUpdateRequest {
+  name: string;
+  durationMinutes: number;
+}
+
 export interface JwtPayload {
   sub: string;
   role: Role;

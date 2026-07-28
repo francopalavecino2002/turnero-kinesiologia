@@ -1,0 +1,108 @@
+// ============================================================================
+// Admin layout — sidebar + content area
+// ============================================================================
+
+.admin-layout {
+  display: flex;
+  min-height: calc(100dvh - var(--eqi-shell-top, 0px));
+  background: var(--eqi-neutral-light);
+}
+
+// --- Sidebar ----------------------------------------------------------------
+
+.admin-layout__sidebar {
+  flex-shrink: 0;
+  width: 260px;
+  background: var(--eqi-surface);
+  border-right: 1px solid var(--eqi-neutral);
+  padding: 24px 0;
+
+  @media (max-width: 767px) {
+    display: none;
+  }
+}
+
+.admin-layout__title {
+  margin: 0 0 24px;
+  padding: 0 20px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--eqi-ink);
+}
+
+.admin-layout__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.admin-layout__nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  color: var(--eqi-ink-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background-color 0.15s, color 0.15s;
+  cursor: pointer;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  &:hover:not(&--disabled) {
+    background: var(--eqi-neutral-light);
+    color: var(--eqi-ink);
+  }
+
+  &--active {
+    background: var(--eqi-primary);
+    color: #fff;
+    font-weight: 600;
+
+    &:hover {
+      background: var(--eqi-primary-strong);
+      color: #fff;
+    }
+  }
+
+  &--disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+.admin-layout__badge {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--eqi-neutral);
+  color: var(--eqi-ink-soft);
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+// --- Content ----------------------------------------------------------------
+
+.admin-layout__content {
+  flex: 1;
+  min-width: 0;
+  padding: clamp(16px, 4vw, 32px);
+}
+
+// --- Mobile header -----------------------------------------------------------
+
+@media (max-width: 767px) {
+  .admin-layout {
+    flex-direction: column;
+  }
+
+  .admin-layout__content {
+    padding: 16px;
+  }
+}

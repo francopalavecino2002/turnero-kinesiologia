@@ -1,0 +1,33 @@
+<div class="admin-layout">
+  <aside class="admin-layout__sidebar">
+    <h2 class="admin-layout__title">Panel de administración</h2>
+    <nav class="admin-layout__nav">
+      <a
+        class="admin-layout__nav-item"
+        routerLink="/admin/services"
+        routerLinkActive="admin-layout__nav-item--active"
+      >
+        <mat-icon>medical_services</mat-icon>
+        <span>Servicios</span>
+      </a>
+      <div class="admin-layout__nav-item admin-layout__nav-item--disabled">
+        <mat-icon>people</mat-icon>
+        <span>Profesionales</span>
+        <span class="admin-layout__badge">Próximamente</span>
+      </div>
+      <div class="admin-layout__nav-item admin-layout__nav-item--disabled">
+        <mat-icon>schedule</mat-icon>
+        <span>Disponibilidades</span>
+        <span class="admin-layout__badge">Próximamente</span>
+      </div>
+      <div class="admin-layout__nav-item admin-layout__nav-item--disabled">
+        <mat-icon>date_range</mat-icon>
+        <span>Bloques recurrentes</span>
+        <span class="admin-layout__badge">Próximamente</span>
+      </div>
+    </nav>
+  </aside>
+  <main class="admin-layout__content">
+    <router-outlet />
+  </main>
+</div>
