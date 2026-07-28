@@ -46,6 +46,9 @@ export class HeaderComponent {
   readonly isMobile = signal(false);
 
   readonly navLinks = computed<NavLink[]>(() => {
+    if (!this.isLoggedIn()) {
+      return [{ label: 'Reservar turno', route: '/book', icon: 'event_available' }];
+    }
     if (this.mustChangePassword()) return [];
     const r = this.role();
     if (r === 'PATIENT') {
