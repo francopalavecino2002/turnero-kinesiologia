@@ -64,8 +64,15 @@ public class AuthService {
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.email())
-                .filter(candidate -> passwordEncoder.matches(request.password(), candidate.getPassword()))
                 .orElseThrow(() -> new UnauthorizedException(INVALID_CREDENTIALS_MESSAGE));
+
+        if (!user.isActive()) {
+            throw new UnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
+        }
+
+        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+            throw new UnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
+        }
 
         String token = jwtService.generateToken(user);
         NameInfo name = resolveName(user);

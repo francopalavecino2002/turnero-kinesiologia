@@ -283,6 +283,43 @@ class AppointmentBookingIntegrationTest {
     }
 
     @Test
+    void returns400WhenProfessionalIsDeactivated() throws Exception {
+        professional.getUser().setActive(false);
+        userRepository.save(professional.getUser());
+
+        LocalDateTime dateTime = LocalDateTime.of(bookingDate, LocalTime.of(9, 0));
+        CreateAppointmentRequest body = request(professional.getId(), generalService.getId(), dateTime);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments")
+                        .header("Authorization", "Bearer " + patientToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.message")
+                        .value("Este profesional no está disponible actualmente."));
+    }
+
+    @Test
+    void bookingWithReactivatedProfessionalSucceeds() throws Exception {
+        professional.getUser().setActive(false);
+        userRepository.save(professional.getUser());
+
+        // Reactivate
+        professional.getUser().setActive(true);
+        userRepository.save(professional.getUser());
+
+        LocalDateTime dateTime = LocalDateTime.of(bookingDate, LocalTime.of(9, 0));
+        CreateAppointmentRequest body = request(professional.getId(), generalService.getId(), dateTime);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments")
+                        .header("Authorization", "Bearer " + patientToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(MockMvcResultMatchers.status().isCreated())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.status").value("BOOKED"));
+    }
+
+    @Test
     void returns401WhenNoTokenProvided() throws Exception {
         LocalDateTime dateTime = LocalDateTime.of(bookingDate, LocalTime.of(9, 0));
         CreateAppointmentRequest body = request(professional.getId(), generalService.getId(), dateTime);

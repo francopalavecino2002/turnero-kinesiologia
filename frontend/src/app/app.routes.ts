@@ -69,6 +69,14 @@ export const routes: Routes = [
             (m) => m.AdminServicesComponent,
           ),
       },
+      {
+        path: 'professionals',
+        loadComponent: () =>
+          import(
+            './pages/admin/professionals/admin-professionals.component'
+          ).then((m) => m.AdminProfessionalsComponent,
+          ),
+      },
     ],
   },
 ];
