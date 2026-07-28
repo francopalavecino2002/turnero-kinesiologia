@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
+import { adminGuard } from './core/guards/admin.guard';
 import { mustChangePasswordGuard } from './core/guards/must-change-password.guard';
 
 export const routes: Routes = [
@@ -47,5 +48,27 @@ export const routes: Routes = [
     canActivate: [authGuard, roleGuard('PROFESSIONAL', 'ADMIN'), mustChangePasswordGuard],
     loadComponent: () =>
       import('./pages/agenda/agenda.component').then((m) => m.AgendaComponent),
+  },
+  {
+    path: 'admin',
+    canActivate: [authGuard, adminGuard, mustChangePasswordGuard],
+    loadComponent: () =>
+      import('./pages/admin/admin-layout.component').then(
+        (m) => m.AdminLayoutComponent,
+      ),
+    children: [
+      {
+        path: '',
+        redirectTo: 'services',
+        pathMatch: 'full',
+      },
+      {
+        path: 'services',
+        loadComponent: () =>
+          import('./pages/admin/services/admin-services.component').then(
+            (m) => m.AdminServicesComponent,
+          ),
+      },
+    ],
   },
 ];

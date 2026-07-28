@@ -1,0 +1,174 @@
+<div class="admin-services">
+  <div class="admin-services__header">
+    <h1 class="admin-services__title">Servicios</h1>
+    <div class="admin-services__actions">
+      <mat-slide-toggle
+        [checked]="includeInactive()"
+        (change)="toggleIncludeInactive()"
+      >
+        Mostrar inactivos
+      </mat-slide-toggle>
+      <button mat-raised-button color="primary" (click)="openCreateForm()">
+        <mat-icon>add</mat-icon>
+        Nuevo servicio
+      </button>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="admin-services__loading">
+      <mat-progress-spinner mode="indeterminate" diameter="40" />
+    </div>
+  } @else if (services().length === 0) {
+    <div class="admin-services__empty">
+      <mat-icon>medical_services</mat-icon>
+      <p>No hay servicios para mostrar</p>
+    </div>
+  } @else {
+    <div class="admin-services__table-wrap">
+      <table class="admin-services__table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Duración</th>
+            <th>Estado</th>
+            <th class="admin-services__th-actions">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (service of services(); track service.id) {
+            <tr [class.admin-services__row--inactive]="!service.active">
+              <td class="admin-services__td-name">{{ service.name }}</td>
+              <td>{{ service.durationMinutes }} min</td>
+              <td>
+                <span
+                  class="admin-services__badge"
+                  [class.admin-services__badge--active]="service.active"
+                  [class.admin-services__badge--inactive]="!service.active"
+                >
+                  {{ service.active ? 'Activo' : 'Inactivo' }}
+                </span>
+              </td>
+              <td class="admin-services__td-actions">
+                <button
+                  mat-icon-button
+                  color="primary"
+                  matTooltip="Editar"
+                  (click)="openEditForm(service)"
+                >
+                  <mat-icon>edit</mat-icon>
+                </button>
+                @if (service.active) {
+                  <button
+                    mat-icon-button
+                    color="warn"
+                    matTooltip="Desactivar"
+                    (click)="deactivate(service)"
+                  >
+                    <mat-icon>block</mat-icon>
+                  </button>
+                } @else {
+                  <button
+                    mat-icon-button
+                    color="accent"
+                    matTooltip="Reactivar"
+                    (click)="reactivate(service)"
+                  >
+                    <mat-icon>replay</mat-icon>
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  @if (showForm()) {
+    <div class="admin-services__overlay" (click)="cancelForm()">
+      <div class="admin-services__modal" (click)="$event.stopPropagation()">
+        <h2 class="admin-services__modal-title">
+          {{ isEditing ? 'Editar servicio' : 'Nuevo servicio' }}
+        </h2>
+
+        @if (errorMessage(); as message) {
+          <div class="eqi-error" role="alert">
+            <mat-icon aria-hidden="true">error_outline</mat-icon>
+            <span>{{ message }}</span>
+          </div>
+        }
+
+        @if (isEditing) {
+          <div class="admin-services__info-banner">
+            <mat-icon>info</mat-icon>
+            <span>
+              Si modificás la duración, solo afecta reservas nuevas. Los turnos
+              ya reservados mantienen su duración original.
+            </span>
+          </div>
+        }
+
+        <form
+          class="admin-services__form"
+          [formGroup]="form"
+          (ngSubmit)="save()"
+          novalidate
+        >
+          <mat-form-field appearance="outline">
+            <mat-label>Nombre</mat-label>
+            <input
+              matInput
+              formControlName="name"
+              maxlength="100"
+              required
+            />
+            @if (form.controls.name.hasError('required')) {
+              <mat-error>Ingresá el nombre del servicio</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Duración (minutos)</mat-label>
+            <input
+              matInput
+              type="number"
+              formControlName="durationMinutes"
+              min="5"
+              max="480"
+              required
+            />
+            @if (form.controls.durationMinutes.hasError('min')) {
+              <mat-error>Mínimo 5 minutos</mat-error>
+            } @else if (form.controls.durationMinutes.hasError('max')) {
+              <mat-error>Máximo 480 minutos</mat-error>
+            }
+          </mat-form-field>
+
+          <div class="admin-services__form-actions">
+            <button
+              mat-button
+              type="button"
+              (click)="cancelForm()"
+              [disabled]="saving()"
+            >
+              Cancelar
+            </button>
+            <button
+              mat-raised-button
+              color="primary"
+              type="submit"
+              [disabled]="saving()"
+            >
+              @if (saving()) {
+                <mat-progress-spinner mode="indeterminate" diameter="20" />
+              } @else {
+                {{ isEditing ? 'Guardar cambios' : 'Crear servicio' }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</div>

@@ -22,19 +22,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/services")
 public class ServiceController {
 
+    private final ServiceService serviceService;
     private final ServiceRepository serviceRepository;
     private final ProfessionalRepository professionalRepository;
 
-    public ServiceController(ServiceRepository serviceRepository, ProfessionalRepository professionalRepository) {
+    public ServiceController(ServiceService serviceService,
+                             ServiceRepository serviceRepository,
+                             ProfessionalRepository professionalRepository) {
+        this.serviceService = serviceService;
         this.serviceRepository = serviceRepository;
         this.professionalRepository = professionalRepository;
     }
 
     @GetMapping
     public ResponseEntity<List<ServiceResponse>> getActiveServices() {
-        List<ServiceResponse> services = serviceRepository.findByActiveTrue().stream()
-                .map(ServiceMapper::toResponse)
-                .toList();
+        List<ServiceResponse> services = serviceService.findActiveServices();
         return ResponseEntity.ok(services);
     }
 

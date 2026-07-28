@@ -58,7 +58,13 @@ export class HeaderComponent {
         },
       ];
     }
-    if (r === 'PROFESSIONAL' || r === 'ADMIN') {
+    if (r === 'ADMIN') {
+      return [
+        { label: 'Agenda', route: '/agenda', icon: 'view_day' },
+        { label: 'Panel admin', route: '/admin', icon: 'admin_panel_settings' },
+      ];
+    }
+    if (r === 'PROFESSIONAL') {
       return [{ label: 'Agenda', route: '/agenda', icon: 'view_day' }];
     }
     return [];
