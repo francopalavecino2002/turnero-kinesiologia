@@ -176,3 +176,38 @@ export interface JwtPayload {
   exp: number;
   iat: number;
 }
+
+export type DayOfWeek =
+  | 'MONDAY'
+  | 'TUESDAY'
+  | 'WEDNESDAY'
+  | 'THURSDAY'
+  | 'FRIDAY'
+  | 'SATURDAY'
+  | 'SUNDAY';
+
+export interface Availability {
+  id: number;
+  professionalId: number;
+  professionalName: string;
+  dayOfWeek: DayOfWeek;
+  startTime: string;
+  endTime: string;
+  serviceId: number | null;
+  serviceName: string | null;
+}
+
+export interface CreateAvailabilityRequest {
+  professionalId: number;
+  dayOfWeek: DayOfWeek;
+  startTime: string;
+  endTime: string;
+  serviceId: number | null;
+}
+
+export interface UpdateAvailabilityRequest {
+  dayOfWeek: DayOfWeek;
+  startTime: string;
+  endTime: string;
+  serviceId: number | null;
+}

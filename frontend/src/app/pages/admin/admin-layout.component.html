@@ -18,11 +18,14 @@
         <mat-icon>people</mat-icon>
         <span>Profesionales</span>
       </a>
-      <div class="admin-layout__nav-item admin-layout__nav-item--disabled">
+      <a
+        class="admin-layout__nav-item"
+        routerLink="/admin/availability"
+        routerLinkActive="admin-layout__nav-item--active"
+      >
         <mat-icon>schedule</mat-icon>
         <span>Disponibilidades</span>
-        <span class="admin-layout__badge">Próximamente</span>
-      </div>
+      </a>
       <div class="admin-layout__nav-item admin-layout__nav-item--disabled">
         <mat-icon>date_range</mat-icon>
         <span>Bloques recurrentes</span>
