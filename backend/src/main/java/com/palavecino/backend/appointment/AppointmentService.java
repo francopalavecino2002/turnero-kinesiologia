@@ -170,8 +170,7 @@ public class AppointmentService {
         }
 
         com.palavecino.backend.availability.DayOfWeek dayOfWeek = toDayOfWeek(date);
-        List<Availability> availabilities = availabilityRepository.findByProfessionalAndDayOfWeek(
-                professional, dayOfWeek);
+        List<Availability> availabilities = resolveAvailabilities(professional, dayOfWeek, service);
 
         if (availabilities.isEmpty()) {
             return List.of();
@@ -250,8 +249,7 @@ public class AppointmentService {
         appointmentRepository.acquireAdvisoryLock(0);
 
         com.palavecino.backend.availability.DayOfWeek dayOfWeek = toDayOfWeek(dateTime.toLocalDate());
-        List<Availability> availabilities = availabilityRepository.findByProfessionalAndDayOfWeek(
-                professional, dayOfWeek);
+        List<Availability> availabilities = resolveAvailabilities(professional, dayOfWeek, service);
 
         boolean fitsWithinAvailability = availabilities.stream().anyMatch(availability ->
                 !dateTime.toLocalTime().isBefore(availability.getStartTime())
@@ -363,6 +361,17 @@ public class AppointmentService {
     private Professional requireProfessional(AuthenticatedUser currentUser) {
         return professionalRepository.findById(currentUser.professionalId())
                 .orElseThrow(() -> new ResourceNotFoundException("Professional record not found for current user"));
+    }
+
+    private List<Availability> resolveAvailabilities(Professional professional,
+                                                      com.palavecino.backend.availability.DayOfWeek dayOfWeek,
+                                                      Service service) {
+        List<Availability> specific = availabilityRepository
+                .findByProfessionalAndDayOfWeekAndService(professional, dayOfWeek, service);
+        if (!specific.isEmpty()) {
+            return specific;
+        }
+        return availabilityRepository.findByProfessionalAndDayOfWeekAndServiceIsNull(professional, dayOfWeek);
     }
 
     private com.palavecino.backend.availability.DayOfWeek toDayOfWeek(LocalDate date) {

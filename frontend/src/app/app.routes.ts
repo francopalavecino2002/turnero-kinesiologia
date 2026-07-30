@@ -77,6 +77,14 @@ export const routes: Routes = [
           ).then((m) => m.AdminProfessionalsComponent,
           ),
       },
+      {
+        path: 'availability',
+        loadComponent: () =>
+          import(
+            './pages/admin/availability/admin-availability.component'
+          ).then((m) => m.AdminAvailabilityComponent,
+          ),
+      },
     ],
   },
 ];

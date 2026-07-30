@@ -1,0 +1,172 @@
+.admin-availability {
+  max-width: 800px;
+  margin: 0 auto;
+
+  &__header {
+    margin-bottom: 1.5rem;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
+  &__professional-select {
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  &__inactive-label {
+    color: var(--mat-warn-color, #f44336);
+    font-size: 0.85em;
+  }
+
+  &__toolbar {
+    margin-bottom: 1.5rem;
+  }
+
+  &__loading,
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1rem;
+    color: var(--mat-neutral-color, #666);
+    gap: 0.5rem;
+
+    mat-icon {
+      font-size: 3rem;
+      width: 3rem;
+      height: 3rem;
+    }
+
+    p {
+      margin: 0;
+      text-align: center;
+    }
+  }
+
+  &__days {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  &__day-group {
+    border: 1px solid var(--mat-divider-color, #e0e0e0);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  &__day-title {
+    margin: 0;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+    background: var(--mat-surface-container-low, #f5f5f5);
+    border-bottom: 1px solid var(--mat-divider-color, #e0e0e0);
+  }
+
+  &__slots {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__slot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--mat-divider-color, #e0e0e0);
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &--specific {
+      background: rgba(33, 150, 243, 0.04);
+    }
+  }
+
+  &__slot-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  &__slot-time {
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__slot-badge {
+    font-size: 0.8rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+
+    &--general {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    &--specific {
+      background: #e3f2fd;
+      color: #1565c0;
+    }
+  }
+
+  &__slot-actions {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  // Modal form
+  &__overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  &__modal {
+    background: var(--mat-surface, #fff);
+    border-radius: 12px;
+    padding: 1.5rem;
+    width: 90%;
+    max-width: 480px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  }
+
+  &__modal-title {
+    margin: 0 0 1rem;
+    font-size: 1.15rem;
+    font-weight: 600;
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  &__time-row {
+    display: flex;
+    gap: 0.75rem;
+
+    mat-form-field {
+      flex: 1;
+    }
+  }
+
+  &__form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+}

@@ -1,0 +1,209 @@
+<div class="admin-availability">
+  <div class="admin-availability__header">
+    <h1 class="admin-availability__title">Disponibilidades</h1>
+  </div>
+
+  <mat-form-field appearance="outline" class="admin-availability__professional-select">
+    <mat-label>Profesional</mat-label>
+    <mat-select
+      [value]="selectedProfessionalId()"
+      (selectionChange)="onProfessionalChange($event.value)"
+    >
+      @for (pro of professionals(); track pro.id) {
+        <mat-option [value]="pro.id">
+          {{ pro.firstName }} {{ pro.lastName }}
+          @if (!pro.active) {
+            <span class="admin-availability__inactive-label">(Inactivo)</span>
+          }
+        </mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  @if (!selectedProfessionalId()) {
+    <div class="admin-availability__empty">
+      <mat-icon>schedule</mat-icon>
+      <p>Seleccioná un profesional para gestionar sus disponibilidades</p>
+    </div>
+  } @else if (loading()) {
+    <div class="admin-availability__loading">
+      <mat-progress-spinner mode="indeterminate" diameter="40" />
+    </div>
+  } @else {
+    <div class="admin-availability__toolbar">
+      <button mat-raised-button color="primary" (click)="openCreateForm()">
+        <mat-icon>add</mat-icon>
+        Agregar franja
+      </button>
+    </div>
+
+    @if (availabilities().length === 0) {
+      <div class="admin-availability__empty">
+        <mat-icon>schedule</mat-icon>
+        <p>No hay disponibilidades registradas para este profesional</p>
+      </div>
+    } @else {
+      <div class="admin-availability__days">
+        @for (day of dayOrder; track day) {
+          @let dayAvailabilities = availabilitiesByDay().get(day)!;
+          @if (dayAvailabilities.length > 0) {
+            <div class="admin-availability__day-group">
+              <h2 class="admin-availability__day-title">{{ dayLabels[day] }}</h2>
+              <div class="admin-availability__slots">
+                @for (a of dayAvailabilities; track a.id) {
+                  <div
+                    class="admin-availability__slot"
+                    [class.admin-availability__slot--specific]="a.serviceId != null"
+                  >
+                    <div class="admin-availability__slot-info">
+                      <span class="admin-availability__slot-time">
+                        {{ a.startTime.substring(0, 5) }} – {{ a.endTime.substring(0, 5) }}
+                      </span>
+                      <span
+                        class="admin-availability__slot-badge"
+                        [class.admin-availability__slot-badge--general]="a.serviceId == null"
+                        [class.admin-availability__slot-badge--specific]="a.serviceId != null"
+                      >
+                        {{ description(a) }}
+                      </span>
+                    </div>
+                    <div class="admin-availability__slot-actions">
+                      <button
+                        mat-icon-button
+                        color="primary"
+                        matTooltip="Editar"
+                        (click)="openEditForm(a)"
+                      >
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                      <button
+                        mat-icon-button
+                        color="warn"
+                        matTooltip="Eliminar"
+                        (click)="deleteAvailability(a)"
+                      >
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        }
+      </div>
+    }
+  }
+
+  @if (showForm()) {
+    <div class="admin-availability__overlay" (click)="cancelForm()">
+      <div class="admin-availability__modal" (click)="$event.stopPropagation()">
+        <h2 class="admin-availability__modal-title">
+          {{ isEditing ? 'Editar franja' : 'Nueva franja horaria' }}
+        </h2>
+
+        @if (errorMessage(); as message) {
+          <div class="eqi-error" role="alert">
+            <mat-icon aria-hidden="true">error_outline</mat-icon>
+            <span>{{ message }}</span>
+          </div>
+        }
+
+        <form
+          class="admin-availability__form"
+          [formGroup]="form"
+          (ngSubmit)="save()"
+          novalidate
+        >
+          <mat-form-field appearance="outline">
+            <mat-label>Día de la semana</mat-label>
+            <mat-select formControlName="dayOfWeek" required>
+              @for (day of dayOrder; track day) {
+                <mat-option [value]="day">{{ dayLabels[day] }}</mat-option>
+              }
+            </mat-select>
+            @if (form.controls.dayOfWeek.hasError('required')) {
+              <mat-error>Seleccioná un día</mat-error>
+            }
+          </mat-form-field>
+
+          <div class="admin-availability__time-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Hora inicio</mat-label>
+              <input
+                matInput
+                type="time"
+                formControlName="startTime"
+                required
+              />
+              @if (form.controls.startTime.hasError('required')) {
+                <mat-error>Requerido</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Hora fin</mat-label>
+              <input
+                matInput
+                type="time"
+                formControlName="endTime"
+                required
+              />
+              @if (form.controls.endTime.hasError('required')) {
+                <mat-error>Requerido</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Aplica a</mat-label>
+            <mat-select
+              [value]="applyTo()"
+              (selectionChange)="onApplyToChange($event.value)"
+            >
+              <mat-option value="all">Todos los servicios</mat-option>
+              <mat-option value="specific">Un servicio específico</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          @if (applyTo() === 'specific') {
+            <mat-form-field appearance="outline">
+              <mat-label>Servicio</mat-label>
+              <mat-select formControlName="serviceId" required>
+                @for (svc of servicesForSelected(); track svc.id) {
+                  <mat-option [value]="svc.id">{{ svc.name }} ({{ svc.durationMinutes }} min)</mat-option>
+                }
+              </mat-select>
+              @if (form.controls.serviceId.hasError('required')) {
+                <mat-error>Seleccioná un servicio</mat-error>
+              }
+            </mat-form-field>
+          }
+
+          <div class="admin-availability__form-actions">
+            <button
+              mat-button
+              type="button"
+              (click)="cancelForm()"
+              [disabled]="saving()"
+            >
+              Cancelar
+            </button>
+            <button
+              mat-raised-button
+              color="primary"
+              type="submit"
+              [disabled]="saving()"
+            >
+              @if (saving()) {
+                <mat-progress-spinner mode="indeterminate" diameter="20" />
+              } @else {
+                {{ isEditing ? 'Guardar cambios' : 'Crear franja' }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</div>

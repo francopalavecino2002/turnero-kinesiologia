@@ -7,4 +7,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface AvailabilityRepository extends JpaRepository<Availability, Long> {
 
     List<Availability> findByProfessionalAndDayOfWeek(Professional professional, DayOfWeek dayOfWeek);
+
+    List<Availability> findByProfessionalAndDayOfWeekAndServiceIsNull(Professional professional, DayOfWeek dayOfWeek);
+
+    List<Availability> findByProfessionalAndDayOfWeekAndService(Professional professional, DayOfWeek dayOfWeek,
+                                                                  com.palavecino.backend.service.Service service);
+
+    List<Availability> findByProfessionalId(Long professionalId);
+
+    List<Availability> findByProfessionalIdAndServiceIsNull(Long professionalId);
 }

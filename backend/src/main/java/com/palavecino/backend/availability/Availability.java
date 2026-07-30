@@ -1,6 +1,7 @@
 package com.palavecino.backend.availability;
 
 import com.palavecino.backend.professional.Professional;
+import com.palavecino.backend.service.Service;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -36,14 +37,24 @@ public class Availability {
     @Column(nullable = false)
     private LocalTime endTime;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "service_id")
+    private Service service;
+
     protected Availability() {
     }
 
     public Availability(Professional professional, DayOfWeek dayOfWeek, LocalTime startTime, LocalTime endTime) {
+        this(professional, dayOfWeek, startTime, endTime, null);
+    }
+
+    public Availability(Professional professional, DayOfWeek dayOfWeek, LocalTime startTime, LocalTime endTime,
+                        Service service) {
         this.professional = professional;
         this.dayOfWeek = dayOfWeek;
         this.startTime = startTime;
         this.endTime = endTime;
+        this.service = service;
     }
 
     public Long getId() {
@@ -80,5 +91,13 @@ public class Availability {
 
     public void setEndTime(LocalTime endTime) {
         this.endTime = endTime;
+    }
+
+    public Service getService() {
+        return service;
+    }
+
+    public void setService(Service service) {
+        this.service = service;
     }
 }
