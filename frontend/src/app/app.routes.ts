@@ -85,6 +85,14 @@ export const routes: Routes = [
           ).then((m) => m.AdminAvailabilityComponent,
           ),
       },
+      {
+        path: 'recurring-blocks',
+        loadComponent: () =>
+          import(
+            './pages/admin/recurring-blocks/admin-recurring-blocks.component'
+          ).then((m) => m.AdminRecurringBlocksComponent,
+          ),
+      },
     ],
   },
 ];
