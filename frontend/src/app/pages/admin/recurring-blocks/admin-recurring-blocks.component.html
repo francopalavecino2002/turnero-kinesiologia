@@ -1,0 +1,259 @@
+<div class="admin-recurring-blocks">
+  <div class="admin-recurring-blocks__header">
+    <h1 class="admin-recurring-blocks__title">Bloques recurrentes</h1>
+    <div class="admin-recurring-blocks__actions">
+      <mat-slide-toggle
+        [checked]="includeInactive()"
+        (change)="toggleIncludeInactive()"
+      >
+        Mostrar inactivos
+      </mat-slide-toggle>
+      <button mat-raised-button color="primary" (click)="openCreateForm()">
+        <mat-icon>add</mat-icon>
+        Nuevo bloque
+      </button>
+    </div>
+  </div>
+
+  <div class="admin-recurring-blocks__info">
+    <mat-icon>info</mat-icon>
+    <span>
+      Los bloques recurrentes representan franjas horarias fijas que ocupan un box del consultorio
+      de forma permanente (ej. mantenimiento semanal, bloque exclusivo para un servicio).
+      Reducen la capacidad de turnos simultáneos en esa franja horaria.
+    </span>
+  </div>
+
+  @if (loading()) {
+    <div class="admin-recurring-blocks__loading">
+      <mat-progress-spinner mode="indeterminate" diameter="40" />
+    </div>
+  } @else if (blocks().length === 0) {
+    <div class="admin-recurring-blocks__empty">
+      <mat-icon>date_range</mat-icon>
+      <p>No hay bloques recurrentes para mostrar</p>
+    </div>
+  } @else {
+    <div class="admin-recurring-blocks__table-wrap">
+      <table class="admin-recurring-blocks__table">
+        <thead>
+          <tr>
+            <th>Día</th>
+            <th>Horario</th>
+            <th>Descripción</th>
+            <th>Servicio</th>
+            <th>Profesional</th>
+            <th>Estado</th>
+            <th class="admin-recurring-blocks__th-actions">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (block of blocks(); track block.id) {
+            <tr [class.admin-recurring-blocks__row--inactive]="!block.active">
+              <td class="admin-recurring-blocks__td-day">{{ dayLabels[block.dayOfWeek] }}</td>
+              <td class="admin-recurring-blocks__td-time">
+                {{ block.startTime.substring(0, 5) }} – {{ block.endTime.substring(0, 5) }}
+              </td>
+              <td class="admin-recurring-blocks__td-desc">{{ block.description }}</td>
+              <td>
+                @if (block.serviceName) {
+                  <span class="admin-recurring-blocks__chip admin-recurring-blocks__chip--service">
+                    {{ block.serviceName }}
+                  </span>
+                } @else {
+                  <span class="admin-recurring-blocks__muted">—</span>
+                }
+              </td>
+              <td>
+                @if (block.professionalName) {
+                  {{ block.professionalName }}
+                } @else {
+                  <span class="admin-recurring-blocks__muted">—</span>
+                }
+              </td>
+              <td>
+                <span
+                  class="admin-recurring-blocks__badge"
+                  [class.admin-recurring-blocks__badge--active]="block.active"
+                  [class.admin-recurring-blocks__badge--inactive]="!block.active"
+                >
+                  {{ block.active ? 'Activo' : 'Inactivo' }}
+                </span>
+              </td>
+              <td class="admin-recurring-blocks__td-actions">
+                @if (block.affectedAppointmentsCount > 0) {
+                  <button
+                    mat-icon-button
+                    matTooltip="Afecta a {{ block.affectedAppointmentsCount }} turno(s) existente(s)"
+                  >
+                    <mat-icon class="admin-recurring-blocks__warn-icon">warning_amber</mat-icon>
+                  </button>
+                }
+                <button
+                  mat-icon-button
+                  color="primary"
+                  matTooltip="Editar"
+                  (click)="openEditForm(block)"
+                >
+                  <mat-icon>edit</mat-icon>
+                </button>
+                @if (block.active) {
+                  <button
+                    mat-icon-button
+                    color="warn"
+                    matTooltip="Desactivar"
+                    (click)="deactivate(block)"
+                  >
+                    <mat-icon>block</mat-icon>
+                  </button>
+                } @else {
+                  <button
+                    mat-icon-button
+                    color="accent"
+                    matTooltip="Reactivar"
+                    (click)="reactivate(block)"
+                  >
+                    <mat-icon>replay</mat-icon>
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  @if (showForm()) {
+    <div class="admin-recurring-blocks__overlay" (click)="cancelForm()">
+      <div class="admin-recurring-blocks__modal" (click)="$event.stopPropagation()">
+        <h2 class="admin-recurring-blocks__modal-title">
+          {{ isEditing ? 'Editar bloque recurrente' : 'Nuevo bloque recurrente' }}
+        </h2>
+
+        @if (errorMessage(); as message) {
+          <div class="eqi-error" role="alert">
+            <mat-icon aria-hidden="true">error_outline</mat-icon>
+            <span>{{ message }}</span>
+          </div>
+        }
+
+        <div class="admin-recurring-blocks__info-banner">
+          <mat-icon>info</mat-icon>
+          <span>
+            Este bloque ocupará un box del consultorio en la franja horaria indicada,
+            reduciendo la cantidad de turnos disponibles simultáneamente.
+          </span>
+        </div>
+
+        <form
+          class="admin-recurring-blocks__form"
+          [formGroup]="form"
+          (ngSubmit)="save()"
+          novalidate
+        >
+          <mat-form-field appearance="outline">
+            <mat-label>Día de la semana</mat-label>
+            <mat-select formControlName="dayOfWeek" required>
+              @for (day of dayOrder; track day) {
+                <mat-option [value]="day">{{ dayLabels[day] }}</mat-option>
+              }
+            </mat-select>
+            @if (form.controls.dayOfWeek.hasError('required')) {
+              <mat-error>Seleccioná un día</mat-error>
+            }
+          </mat-form-field>
+
+          <div class="admin-recurring-blocks__time-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Hora inicio</mat-label>
+              <input
+                matInput
+                type="time"
+                formControlName="startTime"
+                required
+              />
+              @if (form.controls.startTime.hasError('required')) {
+                <mat-error>Requerido</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Hora fin</mat-label>
+              <input
+                matInput
+                type="time"
+                formControlName="endTime"
+                required
+              />
+              @if (form.controls.endTime.hasError('required')) {
+                <mat-error>Requerido</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Descripción</mat-label>
+            <input
+              matInput
+              formControlName="description"
+              maxlength="255"
+              required
+            />
+            @if (form.controls.description.hasError('required')) {
+              <mat-error>Ingresá una descripción</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Servicio (opcional)</mat-label>
+            <mat-select formControlName="serviceId">
+              <mat-option [value]="null">Sin servicio específico</mat-option>
+              @for (svc of availableServices(); track svc.id) {
+                <mat-option [value]="svc.id">{{ svc.name }} ({{ svc.durationMinutes }} min)</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Profesional (opcional)</mat-label>
+            <mat-select formControlName="professionalId">
+              <mat-option [value]="null">Sin profesional específico</mat-option>
+              @for (pro of professionals(); track pro.id) {
+                <mat-option [value]="pro.id">
+                  {{ pro.firstName }} {{ pro.lastName }}
+                  @if (!pro.active) {
+                    <span class="admin-recurring-blocks__inactive-label">(Inactivo)</span>
+                  }
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <div class="admin-recurring-blocks__form-actions">
+            <button
+              mat-button
+              type="button"
+              (click)="cancelForm()"
+              [disabled]="saving()"
+            >
+              Cancelar
+            </button>
+            <button
+              mat-raised-button
+              color="primary"
+              type="submit"
+              [disabled]="saving()"
+            >
+              @if (saving()) {
+                <mat-progress-spinner mode="indeterminate" diameter="20" />
+              } @else {
+                {{ isEditing ? 'Guardar cambios' : 'Crear bloque' }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</div>

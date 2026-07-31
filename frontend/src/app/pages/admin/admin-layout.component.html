@@ -26,11 +26,14 @@
         <mat-icon>schedule</mat-icon>
         <span>Disponibilidades</span>
       </a>
-      <div class="admin-layout__nav-item admin-layout__nav-item--disabled">
+      <a
+        class="admin-layout__nav-item"
+        routerLink="/admin/recurring-blocks"
+        routerLinkActive="admin-layout__nav-item--active"
+      >
         <mat-icon>date_range</mat-icon>
         <span>Bloques recurrentes</span>
-        <span class="admin-layout__badge">Próximamente</span>
-      </div>
+      </a>
     </nav>
   </aside>
   <main class="admin-layout__content">

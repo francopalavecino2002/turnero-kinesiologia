@@ -211,3 +211,35 @@ export interface UpdateAvailabilityRequest {
   endTime: string;
   serviceId: number | null;
 }
+
+export interface RecurringBlockAdmin {
+  id: number;
+  dayOfWeek: DayOfWeek;
+  startTime: string;
+  endTime: string;
+  description: string;
+  active: boolean;
+  serviceId: number | null;
+  serviceName: string | null;
+  professionalId: number | null;
+  professionalName: string | null;
+  affectedAppointmentsCount: number;
+}
+
+export interface RecurringBlockCreateRequest {
+  dayOfWeek: DayOfWeek;
+  startTime: string;
+  endTime: string;
+  description: string;
+  serviceId: number | null;
+  professionalId: number | null;
+}
+
+export interface RecurringBlockUpdateRequest {
+  dayOfWeek: DayOfWeek;
+  startTime: string;
+  endTime: string;
+  description: string;
+  serviceId: number | null;
+  professionalId: number | null;
+}
