@@ -342,4 +342,38 @@ class AppointmentBookingIntegrationTest {
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(MockMvcResultMatchers.status().isForbidden());
     }
+
+    @Test
+    void availableSlotsServedEvenWithJwtFromDeactivatedAccount() throws Exception {
+        // Regression: available-slots is a public endpoint. A JWT issued before the account was
+        // deactivated must not turn the request into a 401 (the frontend interceptor redirects to
+        // login on any 401): the filter should leave the request anonymous and let permitAll serve
+        // it, instead of short-circuiting before the authorization layer runs.
+        professional.getUser().setActive(false);
+        userRepository.save(professional.getUser());
+        String deactivatedToken = jwtService.generateToken(professional.getUser());
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/appointments/available-slots")
+                        .param("professionalId", professional.getId().toString())
+                        .param("serviceId", generalService.getId().toString())
+                        .param("date", bookingDate.toString())
+                        .header("Authorization", "Bearer " + deactivatedToken))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.length()").value(3));
+    }
+
+    @Test
+    void availableSlotsServedWithValidPatientTokenAndQueryParams() throws Exception {
+        // Reproduction of the reported bug: GET /api/appointments/available-slots with real query
+        // params and the valid, fresh token of a normal active patient must respond 200 - never
+        // 401 ("Authentication required"). The query params matter because the endpoint matcher is
+        // an exact path (/api/appointments/available-slots), not a /** wildcard.
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/appointments/available-slots")
+                        .param("professionalId", professional.getId().toString())
+                        .param("serviceId", generalService.getId().toString())
+                        .param("date", bookingDate.toString())
+                        .header("Authorization", "Bearer " + patientToken()))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.length()").value(3));
+    }
 }

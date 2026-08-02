@@ -354,12 +354,13 @@ class AuthIntegrationTest {
         user.setActive(false);
         userRepository.save(user);
 
-        // Same token should now be rejected
+        // Same token should now be rejected: the filter no longer applies it (the account is
+        // disabled), so the request reaches the authorization layer as anonymous and the
+        // protected endpoint answers 401 via the JSON entry point.
         mockMvc.perform(MockMvcRequestBuilders.get("/api/auth/me")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(MockMvcResultMatchers.status().isUnauthorized())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.message").value(
-                        "Cuenta desactivada. Contactá al administrador del consultorio."));
+                .andExpect(MockMvcResultMatchers.jsonPath("$.message").value("Authentication required"));
     }
 
     @Test
