@@ -5,7 +5,14 @@ import { catchError, throwError } from 'rxjs';
 import { TokenStorageService } from '../services/token-storage.service';
 import { environment } from '../../../environments/environment';
 
-const PUBLIC_PATHS = ['/api/auth/login', '/api/auth/register'];
+const PUBLIC_PATHS = [
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/verify-email',
+  '/api/auth/resend-verification',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+];
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const tokenStorage = inject(TokenStorageService);

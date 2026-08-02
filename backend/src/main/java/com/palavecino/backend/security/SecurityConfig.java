@@ -52,7 +52,9 @@ public class SecurityConfig {
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
+                        .requestMatchers("/api/auth/register", "/api/auth/login",
+                                "/api/auth/verify-email", "/api/auth/resend-verification",
+                                "/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
                         .requestMatchers("/api/appointments/available-slots").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/services/**", "/api/professionals/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

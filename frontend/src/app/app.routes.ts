@@ -16,6 +16,34 @@ export const routes: Routes = [
       import('./pages/register/register.component').then((m) => m.RegisterComponent),
   },
   {
+    path: 'registro-exitoso',
+    loadComponent: () =>
+      import('./pages/register/registration-success.component').then(
+        (m) => m.RegistrationSuccessComponent,
+      ),
+  },
+  {
+    path: 'verificar-email',
+    loadComponent: () =>
+      import('./pages/verify-email/verify-email.component').then(
+        (m) => m.VerifyEmailComponent,
+      ),
+  },
+  {
+    path: 'recuperar-contrasena',
+    loadComponent: () =>
+      import('./pages/forgot-password/forgot-password.component').then(
+        (m) => m.ForgotPasswordComponent,
+      ),
+  },
+  {
+    path: 'restablecer-password',
+    loadComponent: () =>
+      import('./pages/reset-password/reset-password.component').then(
+        (m) => m.ResetPasswordComponent,
+      ),
+  },
+  {
     path: 'change-password',
     canActivate: [authGuard],
     loadComponent: () =>

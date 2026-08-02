@@ -3,9 +3,11 @@ package com.palavecino.backend.auth;
 import com.palavecino.backend.auth.dto.AuthResponse;
 import com.palavecino.backend.auth.dto.ChangePasswordRequest;
 import com.palavecino.backend.auth.dto.LoginRequest;
+import com.palavecino.backend.auth.dto.MessageResponse;
 import com.palavecino.backend.auth.dto.RegisterRequest;
 import com.palavecino.backend.auth.dto.RegisterResponse;
 import com.palavecino.backend.auth.dto.UserInfoResponse;
+import com.palavecino.backend.email.EmailService;
 import com.palavecino.backend.exception.ConflictException;
 import com.palavecino.backend.exception.UnauthorizedException;
 import com.palavecino.backend.patient.Patient;
@@ -15,6 +17,11 @@ import com.palavecino.backend.security.JwtService;
 import com.palavecino.backend.user.Role;
 import com.palavecino.backend.user.User;
 import com.palavecino.backend.user.UserRepository;
+import com.palavecino.backend.usertoken.TokenType;
+import com.palavecino.backend.usertoken.UserToken;
+import com.palavecino.backend.usertoken.UserTokenService;
+import java.time.Duration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,22 +31,42 @@ public class AuthService {
 
     private static final String INVALID_CREDENTIALS_MESSAGE = "Invalid email or password";
 
+    // Deliberately distinguishes an unverified account from bad credentials. Normally login is
+    // anti-enumeration (one generic message) to avoid confirming which emails exist; here the
+    // trade-off is inverted: an unverified user is STUCK (they cannot log in, the only way out is
+    // the emailed link), so telling them exactly why is worth the small cost of confirming the
+    // account exists. The code lets the frontend offer a resend-verification action without
+    // parsing human text. The check itself happens only AFTER the password matches, so someone
+    // without the password still learns nothing.
+    private static final String EMAIL_NOT_VERIFIED_MESSAGE =
+            "Tu email todavía no fue verificado. Revisá tu casilla (y la carpeta de spam) o pedí un link nuevo.";
+    private static final String EMAIL_NOT_VERIFIED_CODE = "EMAIL_NOT_VERIFIED";
+
     private final UserRepository userRepository;
     private final PatientRepository patientRepository;
     private final ProfessionalRepository professionalRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final UserTokenService userTokenService;
+    private final EmailService emailService;
+    private final Duration resendCooldown;
 
     public AuthService(UserRepository userRepository,
                         PatientRepository patientRepository,
                         ProfessionalRepository professionalRepository,
                         PasswordEncoder passwordEncoder,
-                        JwtService jwtService) {
+                        JwtService jwtService,
+                        UserTokenService userTokenService,
+                        EmailService emailService,
+                        @Value("${app.tokens.resend-cooldown}") Duration resendCooldown) {
         this.userRepository = userRepository;
         this.patientRepository = patientRepository;
         this.professionalRepository = professionalRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.userTokenService = userTokenService;
+        this.emailService = emailService;
+        this.resendCooldown = resendCooldown;
     }
 
     @Transactional
@@ -50,12 +77,20 @@ public class AuthService {
 
         // Role is always forced to PATIENT here, regardless of anything the client might have
         // sent - public registration can only ever create the lowest-privilege role.
-        User user = new User(request.email(), passwordEncoder.encode(request.password()), Role.PATIENT, true);
+        // Public self-registration starts UNVERIFIED: the emailed link is the proof that the
+        // person owns the address. (Users created by the admin/system are pre-verified instead.)
+        User user = new User(request.email(), passwordEncoder.encode(request.password()), Role.PATIENT, true,
+                false, false);
         user = userRepository.save(user);
 
         Patient patient = new Patient(request.firstName(), request.lastName(), request.phone(), user,
                 request.notificationsEnabledOrDefault());
         patient = patientRepository.save(patient);
+
+        // Email send is async and failure-tolerant (see EmailService), so it can never block or
+        // fail the registration even if the SMTP provider is down.
+        String verificationToken = userTokenService.issue(user, TokenType.EMAIL_VERIFICATION);
+        emailService.sendVerificationEmail(user.getEmail(), patient.getFirstName(), verificationToken);
 
         return new RegisterResponse(user.getId(), user.getEmail(), user.getRole(),
                 patient.getFirstName(), patient.getLastName(), patient.getPhone(), patient.isNotificationsEnabled());
@@ -74,6 +109,10 @@ public class AuthService {
             throw new UnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
         }
 
+        if (!user.isEmailVerified()) {
+            throw new UnauthorizedException(EMAIL_NOT_VERIFIED_MESSAGE, EMAIL_NOT_VERIFIED_CODE);
+        }
+
         String token = jwtService.generateToken(user);
         NameInfo name = resolveName(user);
 
@@ -89,6 +128,64 @@ public class AuthService {
         NameInfo name = resolveName(user);
         return new UserInfoResponse(user.getId(), user.getEmail(), user.getRole(),
                 name.firstName(), name.lastName(), user.isMustChangePassword());
+    }
+
+    @Transactional
+    public MessageResponse verifyEmail(String rawToken) {
+        UserToken userToken = userTokenService.consume(rawToken, TokenType.EMAIL_VERIFICATION);
+        User user = userToken.getUser();
+        user.setEmailVerified(true);
+        userRepository.save(user);
+        return new MessageResponse("Tu email fue verificado. Ya podés ingresar a tu cuenta.");
+    }
+
+    @Transactional
+    public MessageResponse resendVerification(String email) {
+        // Anti-enumeration: the endpoint always answers 200 with the same generic message whether
+        // the account exists, is verified, is inactive, or is still within the resend cooldown -
+        // the response never reveals that, and it never leaks whether an email was actually sent.
+        // The cooldown (rate limit) is what keeps an attacker from burning the provider's daily
+        // quota by spamming this public endpoint for a real address: internally we skip both the
+        // token issuance and the send, but from outside the response looks identical.
+        userRepository.findByEmail(email).ifPresent(user -> {
+            if (user.isActive() && !user.isEmailVerified()
+                    && !userTokenService.wasIssuedWithin(user, TokenType.EMAIL_VERIFICATION, resendCooldown)) {
+                String token = userTokenService.issue(user, TokenType.EMAIL_VERIFICATION);
+                emailService.sendVerificationEmail(user.getEmail(), resolveName(user).firstName(), token);
+            }
+        });
+        return new MessageResponse(
+                "Si ese email está registrado, te enviamos un link de verificación. Revisá también la carpeta de spam.");
+    }
+
+    @Transactional
+    public MessageResponse forgotPassword(String email) {
+        // Anti-enumeration: always answers 200 with the same generic message. The resend cooldown
+        // applies here too: one link per user per window, even under automated hammering.
+        userRepository.findByEmail(email).ifPresent(user -> {
+            // Only active, verified accounts get a reset link: sending one to a stray unverified
+            // account would be noise, and the verified account is what we're protecting.
+            if (user.isActive() && user.isEmailVerified()
+                    && !userTokenService.wasIssuedWithin(user, TokenType.PASSWORD_RESET, resendCooldown)) {
+                String token = userTokenService.issue(user, TokenType.PASSWORD_RESET);
+                emailService.sendPasswordResetEmail(user.getEmail(), resolveName(user).firstName(), token);
+            }
+        });
+        return new MessageResponse(
+                "Si ese email está registrado, te enviamos un link para restablecer tu contraseña. "
+                        + "Revisá también la carpeta de spam.");
+    }
+
+    @Transactional
+    public MessageResponse resetPassword(String rawToken, String newPassword) {
+        UserToken userToken = userTokenService.consume(rawToken, TokenType.PASSWORD_RESET);
+        User user = userToken.getUser();
+        user.setPassword(passwordEncoder.encode(newPassword));
+        // A professional/admin on a temporary password (mustChangePassword=true) just set a real
+        // password themselves — clear the forced-change flag, same rule as changePassword().
+        user.setMustChangePassword(false);
+        userRepository.save(user);
+        return new MessageResponse("Tu contraseña fue actualizada. Ya podés ingresar.");
     }
 
     @Transactional

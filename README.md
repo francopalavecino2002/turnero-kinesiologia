@@ -57,6 +57,8 @@ The dual goal is portfolio demonstration and practical utility. Every design dec
 
 ### Patient
 - Register an account and manage profile
+- Email verification on registration (the account is locked until the emailed link is confirmed; a shared "check your inbox" screen handles both the post-registration and the unverified-login cases and offers a resend button with a 60s cooldown)
+- Password recovery by email (forgot-password / reset-password flows with single-use, expiring links)
 - Book appointments through a **4-step mobile-first wizard** (service → professional → date → time slot) that respects per-service duration and per-professional availability
 - View and cancel upcoming appointments (cancellation blocked within 24 hours of the appointment)
 - Conditional step skipping: if only one professional offers a service, the wizard skips the professional-selection step automatically
@@ -107,10 +109,14 @@ The backend exposes a REST API under `/api`. Key endpoints:
 
 | Method | Endpoint | Auth | Roles | Description |
 |--------|----------|------|-------|-------------|
-| `POST` | `/api/auth/register` | Public | — | Patient registration (role forced to PATIENT) |
-| `POST` | `/api/auth/login` | Public | — | Returns JWT token |
+| `POST` | `/api/auth/register` | Public | — | Patient registration (role forced to PATIENT). Sends a verification email; the account is locked until verified |
+| `POST` | `/api/auth/login` | Public | — | Returns JWT token (rejected with `EMAIL_NOT_VERIFIED` while the email is unverified) |
 | `GET` | `/api/auth/me` | Yes | Any | Current user info |
 | `POST` | `/api/auth/change-password` | Yes | Any | Change password (required after admin bootstrap) |
+| `POST` | `/api/auth/verify-email?token=…` | Public | — | Confirm the email address with the link sent at registration |
+| `POST` | `/api/auth/resend-verification` | Public | — | Re-send the verification email (always 200, anti-enumeration; rate-limited to one per 60s per user) |
+| `POST` | `/api/auth/forgot-password` | Public | — | Send a password-reset link (always 200, anti-enumeration; rate-limited to one per 60s per user) |
+| `POST` | `/api/auth/reset-password` | Public | — | Set a new password using the token from the reset email |
 | `GET` | `/api/services` | Public | — | List all active services |
 | `GET` | `/api/services/{id}/professionals` | Public | — | Professionals offering a service |
 | `POST` | `/api/appointments` | Yes | PATIENT | Book an appointment |
@@ -274,8 +280,20 @@ Each professional is associated with one or more services, and their availabilit
 | `ADMIN_PASSWORD` | Yes (prod) | Uses seeded user's password (dev profile only) | Password for the bootstrapped admin account |
 | `JWT_SECRET` | No | `dev-only-insecure-secret-do-not-use-in-production-min-32-bytes` | Secret key for JWT signing (minimum 32 bytes) |
 | `CORS_ALLOWED_ORIGINS` | No | `http://localhost:4200` | Comma-separated allowed origins for CORS |
+| `MAIL_HOST` | Yes (SMTP) | _(blank — emails are skipped and logged)_ | SMTP host used to send transactional emails |
+| `MAIL_PORT` | No | `587` | SMTP port |
+| `MAIL_USERNAME` | Yes (SMTP) | _(blank)_ | SMTP username |
+| `MAIL_PASSWORD` | Yes (SMTP) | _(blank)_ | SMTP password |
+| `MAIL_FROM_ADDRESS` | Yes (SMTP) | _(falls back to `MAIL_USERNAME`)_ | "From" address of the emails |
+| `MAIL_FROM_NAME` | No | `eQi – Especialidades Kinésicas` | Display name shown as the sender |
+| `APP_BASE_URL` | Yes | `http://localhost:4200` | Public URL of the frontend; used to build the verification/reset links inside emails |
+| `EMAIL_VERIFICATION_TOKEN_TTL` | No | `PT24H` | Lifetime of email-verification links (ISO-8601 duration) |
+| `PASSWORD_RESET_TOKEN_TTL` | No | `PT1H` | Lifetime of password-reset links (ISO-8601 duration) |
+| `RESEND_COOLDOWN` | No | `PT60S` | Minimum gap between two emails of the same kind per user (rate limit on the public resend/forgot endpoints) |
 
 Outside the `dev` profile, the application **refuses to start** if `ADMIN_EMAIL` or `ADMIN_PASSWORD` are not set. This is a deliberate security decision — it prevents deploying to production with a missing or default admin account.
+
+If `MAIL_HOST` is blank (the default), the backend never contacts an SMTP server: `SmtpEmailSender` logs the email and skips it. This lets local dev run without mail configuration, but **transactional emails only actually send when `MAIL_*` is configured**.
 
 ---
 
@@ -289,7 +307,7 @@ cd backend
 Tests require **Docker to be running** — each test class spins up its own PostgreSQL 16 container via Testcontainers. No manual database setup is needed; the containers are created and destroyed automatically. The Maven surefire plugin sets the `ADMIN_EMAIL` and `ADMIN_PASSWORD` environment variables so that `AdminBootstrapRunner` does not fail during the test context load.
 
 The test suite covers:
-- Authentication (registration, login, JWT validation, tampered/expired tokens, admin bootstrap, password changes)
+- Authentication (registration, email verification, login, JWT validation, tampered/expired tokens, admin bootstrap, password changes, password recovery)
 - Appointment booking (happy path, validation errors, capacity conflicts, authorization)
 - Status transitions (all valid and invalid transitions, role restrictions, cancellation time windows)
 - IDOR protection (cross-patient and cross-professional access attempts)
@@ -310,20 +328,23 @@ turnero-kinesiologia/
 │   └── src/
 │       ├── main/java/com/palavecino/backend/
 │       │   ├── appointment/    # Core domain: booking, slots, capacity, state machine
-│       │   ├── auth/           # Registration, login, JWT, password change
+│       │   ├── auth/           # Registration, login, JWT, email verification, password recovery
 │       │   ├── availability/   # Professional availability windows
-│       │   ├── config/         # Admin bootstrap, dev data seeder
+│       │   ├── config/         # Admin bootstrap, dev data seeder, async executor
+│       │   ├── email/          # Transactional email (SMTP sender + Thymeleaf rendering)
 │       │   ├── exception/      # Global exception handling, error responses
 │       │   ├── patient/        # Patient entity and repository
 │       │   ├── professional/   # Professional entity and API
 │       │   ├── recurringblock/ # Recurring capacity blocks (EMSELLA, RPG)
 │       │   ├── security/       # JWT filter, SecurityConfig, CORS, password encoder
 │       │   ├── service/        # Clinic services (entity, API, catalog)
-│       │   └── user/           # User account, roles
+│       │   ├── user/           # User account, roles
+│       │   └── usertoken/      # One-time expiring tokens (email verification, password reset)
 │       ├── main/resources/
 │       │   ├── application.yaml
-│       │   └── db/migration/   # Flyway migrations (V1–V3)
-│       └── test/               # 111+ integration tests (Testcontainers + MockMvc)
+│       │   ├── db/migration/   # Flyway migrations (V1–V6)
+│       │   └── templates/email/  # Thymeleaf HTML email templates (verification, password reset)
+│       └── test/               # 220+ integration tests (Testcontainers + MockMvc)
 ├── frontend/
 │   ├── angular.json
 │   ├── package.json
@@ -336,11 +357,14 @@ turnero-kinesiologia/
 
 ### Database schema
 
-The schema is managed by Flyway across three migrations:
+The schema is managed by Flyway across six migrations:
 
 - **V1**: Core tables — `user_account`, `patient`, `professional`, `service`, `professional_service` (many-to-many), `availability`, `appointment` with status constraints and indexes
 - **V2**: `recurring_block` table for weekly time blocks that permanently reserve a box (EMSELLA, RPG sessions)
 - **V3**: `notifications_enabled` on patient, `must_change_password` on user account (for admin bootstrap flow)
+- **V4**: `duration_minutes` snapshot on `appointment` (freezes service duration at booking time)
+- **V5**: optional `service_id` on `availability` (per-service availability windows)
+- **V6**: `email_verified` on `user_account` (existing accounts backfilled to verified) and the `user_token` table for one-time email-verification / password-reset links (only the token's SHA-256 hash is stored)
 
 All timestamps are stored as `TIMESTAMP WITHOUT TIME ZONE` with the JVM and Hibernate timezone pinned to `America/Argentina/Buenos_Aires`.
 

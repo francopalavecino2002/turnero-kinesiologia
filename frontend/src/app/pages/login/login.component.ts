@@ -8,7 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../core/services/auth.service';
-import { Role } from '../../core/models';
+import { ErrorResponse, Role } from '../../core/models';
 
 @Component({
   selector: 'app-login',
@@ -66,6 +66,14 @@ export class LoginComponent {
       },
       error: (error: HttpErrorResponse) => {
         this.loading.set(false);
+        const code = (error.error as ErrorResponse | undefined)?.code;
+        if (error.status === 401 && code === 'EMAIL_NOT_VERIFIED') {
+          // Unverified account: send the user to the "check your email" screen, which already
+          // carries the spam tip and the resend button. Passing the email lets that screen show
+          // it inline and keeps the resend one click away.
+          this.router.navigate(['/registro-exitoso'], { queryParams: { email } });
+          return;
+        }
         this.errorMessage.set(
           error.status === 401
             ? 'Email o contraseña incorrectos'

@@ -74,29 +74,21 @@ export class RegisterComponent {
         notificationsEnabled: value.notificationsEnabled,
       })
       .subscribe({
-        next: () => this.autoLogin(value.email, value.password),
+        next: () => {
+          this.loading.set(false);
+          // Registration now requires email verification before the first login, so the
+          // new patient is sent to a clear confirmation screen instead of being logged in.
+          // `justRegistered` makes that screen start the resend cooldown countdown, matching
+          // the server rule that the registration email itself counts as "recently sent".
+          this.router.navigate(['/registro-exitoso'], {
+            queryParams: { email: value.email, justRegistered: true },
+          });
+        },
         error: (error: HttpErrorResponse) => {
           this.loading.set(false);
           this.errorMessage.set(this.messageForRegisterError(error));
         },
       });
-  }
-
-  // Registration returns no token, so log in with the just-created credentials
-  // to establish the session, then land the new patient on the booking screen.
-  private autoLogin(email: string, password: string): void {
-    this.auth.login({ email, password }).subscribe({
-      next: () => {
-        this.loading.set(false);
-        this.router.navigate(['/book']);
-      },
-      error: () => {
-        // Account exists but the session couldn't be established; send them to
-        // login rather than leaving them stuck on the form.
-        this.loading.set(false);
-        this.router.navigate(['/login']);
-      },
-    });
   }
 
   private messageForRegisterError(error: HttpErrorResponse): string {

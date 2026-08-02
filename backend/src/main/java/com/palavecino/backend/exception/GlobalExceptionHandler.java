@@ -31,7 +31,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ErrorResponse> handleUnauthorized(UnauthorizedException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ErrorResponse.of(HttpStatus.UNAUTHORIZED.value(), ex.getMessage()));
+                .body(ErrorResponse.ofWithCode(HttpStatus.UNAUTHORIZED.value(), ex.getMessage(), ex.getCode()));
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)

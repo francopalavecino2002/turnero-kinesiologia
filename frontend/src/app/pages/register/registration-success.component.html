@@ -1,0 +1,58 @@
+<main class="eqi-shell">
+  <section class="eqi-card">
+    <img class="eqi-logo" src="assets/EQI-02.png" alt="eQi – Especialidades Kinésicas" width="120" height="120" />
+
+    @if (justRegistered()) {
+      <h1 class="eqi-heading">Cuenta creada</h1>
+      <p class="eqi-subheading">Casi está, ¡un último paso!</p>
+    } @else {
+      <h1 class="eqi-heading">Cuenta sin verificar</h1>
+      <p class="eqi-subheading">Tenés que confirmar tu email para poder ingresar</p>
+    }
+
+    <div class="eqi-success" role="status">
+      <mat-icon aria-hidden="true">mark_email_unread</mat-icon>
+      <span>
+        @if (email(); as email) {
+          @if (justRegistered()) {
+            Te mandamos un mail a <strong>{{ email }}</strong>. Confirmalo para poder ingresar.
+          } @else {
+            Tu cuenta todavía no está verificada. Te mandamos un mail a <strong>{{ email }}</strong>.
+          }
+        } @else {
+          Te enviamos un link de verificación a tu email. Tenés que confirmarlo para poder ingresar.
+        }
+      </span>
+    </div>
+
+    <ul class="eqi-registration-steps">
+      <li>Revisá tu casilla y la carpeta de spam.</li>
+      <li>Tocá el link para confirmar tu email.</li>
+      <li>Después ya podés ingresar y reservar tu turno.</li>
+    </ul>
+
+    <button
+      class="eqi-btn-block"
+      mat-stroked-button
+      color="primary"
+      type="button"
+      [disabled]="resending() || cooldownRemaining() > 0"
+      (click)="resend()"
+    >
+      @if (resending()) {
+        <mat-progress-spinner diameter="22" mode="indeterminate" aria-label="Reenviando link" />
+      } @else if (cooldownRemaining() > 0) {
+        Podés pedir otro link en {{ cooldownRemaining() }}s
+      } @else {
+        Reenviar link de verificación
+      }
+    </button>
+    @if (resendMessage(); as message) {
+      <p class="eqi-resend-message">{{ message }}</p>
+    }
+
+    <button mat-raised-button color="primary" class="eqi-btn-block" routerLink="/login">
+      Ir a la pantalla de ingreso
+    </button>
+  </section>
+</main>

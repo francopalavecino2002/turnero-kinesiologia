@@ -218,11 +218,9 @@ class AuthIntegrationTest {
 
     @Test
     void loginWithCorrectCredentialsReturnsValidJwt() throws Exception {
+        // Users created by the system (as opposed to public self-registration) start verified.
         String email = unique("login") + "@example.com";
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validRegisterRequest(email))))
-                .andExpect(MockMvcResultMatchers.status().isCreated());
+        userRepository.save(new User(email, passwordEncoder.encode("password123"), Role.PATIENT, true));
 
         String responseJson = mockMvc.perform(MockMvcRequestBuilders.post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -269,10 +267,7 @@ class AuthIntegrationTest {
     @Test
     void meWithValidTokenReturns200() throws Exception {
         String email = unique("me") + "@example.com";
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validRegisterRequest(email))))
-                .andExpect(MockMvcResultMatchers.status().isCreated());
+        userRepository.save(new User(email, passwordEncoder.encode("password123"), Role.PATIENT, true));
 
         String loginJson = mockMvc.perform(MockMvcRequestBuilders.post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -297,10 +292,7 @@ class AuthIntegrationTest {
     @Test
     void meWithTamperedTokenReturns401() throws Exception {
         String email = unique("tamper") + "@example.com";
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validRegisterRequest(email))))
-                .andExpect(MockMvcResultMatchers.status().isCreated());
+        userRepository.save(new User(email, passwordEncoder.encode("password123"), Role.PATIENT, true));
 
         String loginJson = mockMvc.perform(MockMvcRequestBuilders.post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)

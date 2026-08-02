@@ -162,7 +162,8 @@ body {
 
 // Full-width, touch-friendly primary button.
 .eqi-btn-block.mat-mdc-raised-button,
-.eqi-btn-block.mat-mdc-unelevated-button {
+.eqi-btn-block.mat-mdc-unelevated-button,
+.eqi-btn-block.mat-mdc-outlined-button {
   width: 100%;
   min-height: var(--eqi-touch-target);
   border-radius: var(--eqi-radius-control);
@@ -181,6 +182,31 @@ body {
   border-radius: var(--eqi-radius-control);
   background: #fdecea;
   color: var(--eqi-danger);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+// The icon must never shrink or get overlapped when the message wraps onto several lines
+// (a flex child defaults to `flex-shrink: 1`, which squashes it against the long text).
+.eqi-error mat-icon,
+.eqi-success mat-icon {
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 2px;
+  font-size: 22px;
+  line-height: 1;
+}
+
+// Inline success banner (e.g. "Tu email fue verificado").
+.eqi-success {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: var(--eqi-radius-control);
+  background: #e8f5ee;
+  color: #1e7a45;
   font-size: 0.9rem;
   font-weight: 500;
 }
