@@ -1,0 +1,36 @@
+:host {
+  display: block;
+}
+
+.eqi-google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: var(--eqi-touch-target);
+  padding: 0 16px;
+  border: 1px solid #dadce0;
+  border-radius: var(--eqi-radius-control);
+  background: #fff;
+  color: var(--eqi-ink);
+  font: 500 14px/1.2 'Roboto', sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background: #f8f9fa;
+  }
+
+  &:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--eqi-primary) 35%, transparent);
+    outline-offset: 2px;
+  }
+}
+
+.eqi-google-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}

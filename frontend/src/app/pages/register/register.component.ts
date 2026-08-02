@@ -9,6 +9,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../core/services/auth.service';
+import { GoogleLoginButtonComponent } from '../../shared/google-login-button/google-login-button.component';
 
 // Mirrors the backend rule (@Size(min = 8) on the register password).
 const PASSWORD_MIN_LENGTH = 8;
@@ -25,6 +26,7 @@ const PASSWORD_MIN_LENGTH = 8;
     MatIconModule,
     MatCheckboxModule,
     MatProgressSpinnerModule,
+    GoogleLoginButtonComponent,
   ],
   templateUrl: './register.component.html',
   styleUrl: './register.component.scss',

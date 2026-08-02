@@ -32,6 +32,15 @@ export class TokenStorageService {
     this._user.set(user);
   }
 
+  setTokenOnly(token: string): void {
+    localStorage.setItem(TOKEN_KEY, token);
+  }
+
+  setUser(user: StoredUser): void {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    this._user.set(user);
+  }
+
   updateMustChangePassword(value: boolean): void {
     const current = this._user();
     if (!current) return;

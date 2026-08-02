@@ -12,6 +12,7 @@ const AUTH_FLOW_ROUTES = [
   '/login',
   '/register',
   '/registro-exitoso',
+  '/oauth2/callback',
   '/verificar-email',
   '/recuperar-contrasena',
   '/restablecer-password',

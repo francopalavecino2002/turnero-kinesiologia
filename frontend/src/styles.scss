@@ -219,6 +219,29 @@ body {
   color: var(--eqi-ink-soft);
 }
 
+// "o" separator between the Google button and the email/password form.
+.eqi-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+  color: var(--eqi-ink-soft);
+  font-size: 0.85rem;
+}
+
+.eqi-divider::before,
+.eqi-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--eqi-neutral);
+}
+
+// Remove the bottom margin on the Google button so the divider spacing stays even.
+.eqi-card > app-google-login-button {
+  margin-top: 16px;
+}
+
 .eqi-alt a {
   color: var(--eqi-primary);
   font-weight: 600;
