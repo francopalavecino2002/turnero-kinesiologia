@@ -22,9 +22,12 @@ public class CustomUserDetailsService implements UserDetailsService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email " + email));
 
+        // Google-created accounts have a null password (they authenticate via OAuth, never via the
+        // password verifier), so surface an empty placeholder: Spring's User requires a non-null
+        // password, but the value is never matched against anything for those accounts.
         return org.springframework.security.core.userdetails.User
                 .withUsername(user.getEmail())
-                .password(user.getPassword())
+                .password(user.getPassword() == null ? "" : user.getPassword())
                 .authorities(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
                 .disabled(!user.isActive())
                 .build();

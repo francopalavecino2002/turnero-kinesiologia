@@ -14,6 +14,7 @@ import com.palavecino.backend.patient.Patient;
 import com.palavecino.backend.patient.PatientRepository;
 import com.palavecino.backend.professional.ProfessionalRepository;
 import com.palavecino.backend.security.JwtService;
+import com.palavecino.backend.user.AuthProvider;
 import com.palavecino.backend.user.Role;
 import com.palavecino.backend.user.User;
 import com.palavecino.backend.user.UserRepository;
@@ -30,6 +31,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
 
     private static final String INVALID_CREDENTIALS_MESSAGE = "Invalid email or password";
+
+    // A GOOGLE account has no system password, so a password login can never succeed for it.
+    // The message is explicit on purpose: the account exists but authenticates through Google,
+    // and telling the user exactly why (instead of a generic "invalid credentials") is the only
+    // way out of the confusion. The check runs after the generic inactive-account check and is
+    // reached only for accounts that actually exist.
+    private static final String GOOGLE_ACCOUNT_MESSAGE =
+            "Esta cuenta usa Google para iniciar sesión. Tocá \"Continuar con Google\".";
+    private static final String GOOGLE_ACCOUNT_CODE = "GOOGLE_ACCOUNT";
 
     // Deliberately distinguishes an unverified account from bad credentials. Normally login is
     // anti-enumeration (one generic message) to avoid confirming which emails exist; here the
@@ -105,6 +115,10 @@ public class AuthService {
             throw new UnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
         }
 
+        if (user.getAuthProvider() == AuthProvider.GOOGLE) {
+            throw new UnauthorizedException(GOOGLE_ACCOUNT_MESSAGE, GOOGLE_ACCOUNT_CODE);
+        }
+
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new UnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
         }
@@ -162,10 +176,12 @@ public class AuthService {
     public MessageResponse forgotPassword(String email) {
         // Anti-enumeration: always answers 200 with the same generic message. The resend cooldown
         // applies here too: one link per user per window, even under automated hammering.
+        // GOOGLE accounts are skipped entirely: they have no password to reset, and issuing a link
+        // would only produce a "set a password that still won't log in" dead end.
         userRepository.findByEmail(email).ifPresent(user -> {
-            // Only active, verified accounts get a reset link: sending one to a stray unverified
-            // account would be noise, and the verified account is what we're protecting.
-            if (user.isActive() && user.isEmailVerified()
+            // Only active, verified LOCAL accounts get a reset link: sending one to a stray
+            // unverified account would be noise, and the verified account is what we're protecting.
+            if (user.isActive() && user.isEmailVerified() && user.getAuthProvider() == AuthProvider.LOCAL
                     && !userTokenService.wasIssuedWithin(user, TokenType.PASSWORD_RESET, resendCooldown)) {
                 String token = userTokenService.issue(user, TokenType.PASSWORD_RESET);
                 emailService.sendPasswordResetEmail(user.getEmail(), resolveName(user).firstName(), token);
@@ -180,6 +196,12 @@ public class AuthService {
     public MessageResponse resetPassword(String rawToken, String newPassword) {
         UserToken userToken = userTokenService.consume(rawToken, TokenType.PASSWORD_RESET);
         User user = userToken.getUser();
+        // Defensive: reset links are never issued to GOOGLE accounts (see forgotPassword), but a
+        // token issued before this rule (or a manually created one) must not silently plant a
+        // password on an account that authenticates via Google.
+        if (user.getAuthProvider() == AuthProvider.GOOGLE) {
+            throw new UnauthorizedException("Esta cuenta usa Google para iniciar sesión y no tiene contraseña.");
+        }
         user.setPassword(passwordEncoder.encode(newPassword));
         // A professional/admin on a temporary password (mustChangePassword=true) just set a real
         // password themselves — clear the forced-change flag, same rule as changePassword().
@@ -192,6 +214,10 @@ public class AuthService {
     public void changePassword(String email, ChangePasswordRequest request) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UnauthorizedException(INVALID_CREDENTIALS_MESSAGE));
+
+        if (user.getAuthProvider() == AuthProvider.GOOGLE) {
+            throw new UnauthorizedException("Esta cuenta usa Google para iniciar sesión y no tiene contraseña.");
+        }
 
         if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
             throw new UnauthorizedException("Current password is incorrect");

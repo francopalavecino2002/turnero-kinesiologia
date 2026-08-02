@@ -23,6 +23,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'oauth2/callback',
+    loadComponent: () =>
+      import('./pages/oauth2-callback/oauth2-callback.component').then(
+        (m) => m.OAuth2CallbackComponent,
+      ),
+  },
+  {
     path: 'verificar-email',
     loadComponent: () =>
       import('./pages/verify-email/verify-email.component').then(

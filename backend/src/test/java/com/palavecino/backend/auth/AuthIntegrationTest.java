@@ -262,6 +262,22 @@ class AuthIntegrationTest {
         assertThat(wrongPasswordMessage).isEqualTo("Invalid email or password");
     }
 
+    @Test
+    void loginWithPasswordOnGoogleAccountReturnsClearError() throws Exception {
+        String email = unique("google") + "@example.com";
+        User googleUser = new User(email, null, Role.PATIENT, true, false, true);
+        googleUser.setAuthProvider(com.palavecino.backend.user.AuthProvider.GOOGLE);
+        userRepository.save(googleUser);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginRequest(email, "password123"))))
+                .andExpect(MockMvcResultMatchers.status().isUnauthorized())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.message")
+                        .value("Esta cuenta usa Google para iniciar sesión. Tocá \"Continuar con Google\"."))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("GOOGLE_ACCOUNT"));
+    }
+
     // ---- /me ----
 
     @Test

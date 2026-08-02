@@ -41,6 +41,13 @@ clinic:
 app:
   # Public URL of the Angular frontend, used to build the links embedded in emails.
   base-url: ${APP_BASE_URL:http://localhost:4200}
+  # Google OAuth2 login (Google Login button). Credentials come from GOOGLE_CLIENT_ID /
+  # GOOGLE_CLIENT_SECRET and the feature is off by default: it only activates when
+  # GOOGLE_OAUTH_ENABLED=true (and the app fails fast if the credentials are missing then).
+  # This keeps local dev and the test suite bootable without Google configuration.
+  oauth2:
+    google:
+      enabled: ${GOOGLE_OAUTH_ENABLED:false}
   mail:
     from-address: ${MAIL_FROM_ADDRESS:}
     from-name: ${MAIL_FROM_NAME:eQi – Especialidades Kinésicas}

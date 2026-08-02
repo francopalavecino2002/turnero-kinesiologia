@@ -11,6 +11,12 @@
       </div>
     }
 
+    <app-google-login-button />
+
+    <div class="eqi-divider" role="separator" aria-label="o">
+      <span>o</span>
+    </div>
+
     <form class="eqi-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <mat-form-field appearance="outline">
         <mat-label>Nombre</mat-label>

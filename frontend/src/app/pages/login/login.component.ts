@@ -9,6 +9,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../core/services/auth.service';
 import { ErrorResponse, Role } from '../../core/models';
+import { GoogleLoginButtonComponent } from '../../shared/google-login-button/google-login-button.component';
 
 @Component({
   selector: 'app-login',
@@ -21,6 +22,7 @@ import { ErrorResponse, Role } from '../../core/models';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    GoogleLoginButtonComponent,
   ],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
@@ -72,6 +74,12 @@ export class LoginComponent {
           // carries the spam tip and the resend button. Passing the email lets that screen show
           // it inline and keeps the resend one click away.
           this.router.navigate(['/registro-exitoso'], { queryParams: { email } });
+          return;
+        }
+        if (error.status === 401 && code === 'GOOGLE_ACCOUNT') {
+          this.errorMessage.set(
+            'Esta cuenta usa Google para iniciar sesión. Tocá "Continuar con Google" más arriba.',
+          );
           return;
         }
         this.errorMessage.set(

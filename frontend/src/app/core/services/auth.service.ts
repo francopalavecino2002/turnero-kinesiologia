@@ -24,6 +24,11 @@ export class AuthService {
 
   private readonly apiUrl = `${environment.apiUrl}/auth`;
 
+  private readonly oauth2AuthorizationUrl = `${environment.apiUrl.replace(
+    /\/api\/?$/,
+    '',
+  )}/oauth2/authorization/google`;
+
   readonly user = this.tokenStorage.user;
   readonly isLoggedIn = this.tokenStorage.isLoggedIn;
   readonly role = this.tokenStorage.role;
@@ -83,6 +88,26 @@ export class AuthService {
 
   getCurrentUser() {
     return this.http.get<UserInfoResponse>(`${this.apiUrl}/me`);
+  }
+
+  getOAuth2AuthorizationUrl(): string {
+    return this.oauth2AuthorizationUrl;
+  }
+
+  handleOAuth2Token(token: string) {
+    this.tokenStorage.setTokenOnly(token);
+    return this.getCurrentUser().pipe(
+      tap((user) => {
+        this.tokenStorage.setUser({
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          mustChangePassword: user.mustChangePassword,
+        });
+      }),
+    );
   }
 
   isAuthenticated(): boolean {
