@@ -8,6 +8,7 @@ import com.palavecino.backend.appointment.dto.CreateAppointmentRequest;
 import com.palavecino.backend.appointment.dto.MonthSummaryResponse;
 import com.palavecino.backend.availability.Availability;
 import com.palavecino.backend.availability.AvailabilityRepository;
+import com.palavecino.backend.email.EmailService;
 import com.palavecino.backend.exception.BusinessRuleViolationException;
 import com.palavecino.backend.exception.ConflictException;
 import com.palavecino.backend.exception.ResourceNotFoundException;
@@ -42,6 +43,7 @@ public class AppointmentService {
     private final ServiceRepository serviceRepository;
     private final AvailabilityRepository availabilityRepository;
     private final RecurringBlockRepository recurringBlockRepository;
+    private final EmailService emailService;
     private final Clock clock;
     private final int maxConcurrentAppointments;
     private final long minCancellationHours;
@@ -52,6 +54,7 @@ public class AppointmentService {
                                ServiceRepository serviceRepository,
                                AvailabilityRepository availabilityRepository,
                                RecurringBlockRepository recurringBlockRepository,
+                               EmailService emailService,
                                Clock clock,
                                @Value("${clinic.max-concurrent-appointments}") int maxConcurrentAppointments,
                                @Value("${clinic.min-cancellation-hours}") long minCancellationHours) {
@@ -61,6 +64,7 @@ public class AppointmentService {
         this.serviceRepository = serviceRepository;
         this.availabilityRepository = availabilityRepository;
         this.recurringBlockRepository = recurringBlockRepository;
+        this.emailService = emailService;
         this.clock = clock;
         this.maxConcurrentAppointments = maxConcurrentAppointments;
         this.minCancellationHours = minCancellationHours;
@@ -282,6 +286,19 @@ public class AppointmentService {
         Appointment appointment = new Appointment(patient, professional, service, dateTime, AppointmentStatus.BOOKED, service.getDurationMinutes());
         appointment = appointmentRepository.save(appointment);
 
+        // Email send is async and failure-tolerant (see EmailService), so a broken mail provider
+        // can never fail the booking or force a rollback of the already-saved appointment. Like
+        // the cancellation notice, it only goes out if the patient opted into notifications.
+        if (patient.isNotificationsEnabled()) {
+            emailService.sendAppointmentBookedEmail(
+                    patient.getUser().getEmail(),
+                    patient.getFirstName(),
+                    professional.getFirstName() + " " + professional.getLastName(),
+                    service.getName(),
+                    dateTime,
+                    service.getDurationMinutes());
+        }
+
         return AppointmentMapper.toResponse(appointmentRepository.findByIdWithDetails(appointment.getId())
                 .orElseThrow());
     }
@@ -302,6 +319,20 @@ public class AppointmentService {
         }
 
         appointment.setStatus(AppointmentStatus.CANCELLED);
+
+        // Cancellation notices respect the patient's notification preference; the verification
+        // and password-recovery emails are NOT gated by it (they are required to use the account,
+        // not optional notifications), so those paths stay untouched.
+        if (appointment.getPatient().isNotificationsEnabled()) {
+            emailService.sendAppointmentCancelledEmail(
+                    appointment.getPatient().getUser().getEmail(),
+                    appointment.getPatient().getFirstName(),
+                    appointment.getProfessional().getFirstName() + " " + appointment.getProfessional().getLastName(),
+                    appointment.getService().getName(),
+                    appointment.getDateTime(),
+                    appointment.getDurationMinutes());
+        }
+
         return AppointmentMapper.toResponse(appointment);
     }
 
