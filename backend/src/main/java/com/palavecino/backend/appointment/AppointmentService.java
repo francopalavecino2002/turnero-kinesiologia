@@ -434,7 +434,7 @@ public class AppointmentService {
 
         if (matchesBlockService) {
             boolean boxTaken = !appointmentRepository
-                    .findOverlappingActiveByServiceForUpdate(service, rangeStart, rangeEnd)
+                    .findOverlappingActiveByService(service, rangeStart, rangeEnd)
                     .isEmpty();
             return new CapacityCheckResult(boxTaken, true);
         }
@@ -447,8 +447,8 @@ public class AppointmentService {
                 .toList();
 
         long generalCount = blockServiceIds.isEmpty()
-                ? appointmentRepository.findOverlappingActiveForUpdate(rangeStart, rangeEnd).size()
-                : appointmentRepository.findOverlappingActiveExcludingServicesForUpdate(rangeStart, rangeEnd, blockServiceIds).size();
+                ? appointmentRepository.findOverlappingActive(rangeStart, rangeEnd).size()
+                : appointmentRepository.findOverlappingActiveExcludingServices(rangeStart, rangeEnd, blockServiceIds).size();
 
         int effectiveCapacity = maxConcurrentAppointments - overlappingBlocks.size();
         return new CapacityCheckResult(generalCount >= effectiveCapacity, false);

@@ -123,9 +123,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
               AND a.dateTime < :rangeEnd
               AND timestampadd(MINUTE, a.durationMinutes, a.dateTime) > :rangeStart
             """)
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Transactional
-    List<Appointment> findOverlappingActiveForUpdate(
+    List<Appointment> findOverlappingActive(
             @Param("rangeStart") LocalDateTime rangeStart,
             @Param("rangeEnd") LocalDateTime rangeEnd);
 
@@ -140,23 +138,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
               AND timestampadd(MINUTE, a.durationMinutes, a.dateTime) > :rangeStart
             """)
     List<Appointment> findOverlappingActiveByService(
-            @Param("service") Service service,
-            @Param("rangeStart") LocalDateTime rangeStart,
-            @Param("rangeEnd") LocalDateTime rangeEnd);
-
-    @Query("""
-            SELECT a FROM Appointment a
-            WHERE a.service = :service
-              AND a.status IN (
-                  com.palavecino.backend.appointment.AppointmentStatus.BOOKED,
-                  com.palavecino.backend.appointment.AppointmentStatus.CONFIRMED
-              )
-              AND a.dateTime < :rangeEnd
-              AND timestampadd(MINUTE, a.durationMinutes, a.dateTime) > :rangeStart
-            """)
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Transactional
-    List<Appointment> findOverlappingActiveByServiceForUpdate(
             @Param("service") Service service,
             @Param("rangeStart") LocalDateTime rangeStart,
             @Param("rangeEnd") LocalDateTime rangeEnd);
@@ -186,9 +167,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
               AND a.dateTime < :rangeEnd
               AND timestampadd(MINUTE, a.durationMinutes, a.dateTime) > :rangeStart
             """)
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Transactional
-    List<Appointment> findOverlappingActiveExcludingServicesForUpdate(
+    List<Appointment> findOverlappingActiveExcludingServices(
             @Param("rangeStart") LocalDateTime rangeStart,
             @Param("rangeEnd") LocalDateTime rangeEnd,
             @Param("excludedServiceIds") List<Long> excludedServiceIds);
