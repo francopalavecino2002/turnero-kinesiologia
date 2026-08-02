@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.palavecino.backend.appointment.dto.AvailableSlotResponse;
 import com.palavecino.backend.availability.Availability;
 import com.palavecino.backend.availability.AvailabilityRepository;
+import com.palavecino.backend.email.EmailService;
 import com.palavecino.backend.exception.BusinessRuleViolationException;
 import com.palavecino.backend.patient.Patient;
 import com.palavecino.backend.professional.Professional;
@@ -13,6 +14,7 @@ import com.palavecino.backend.service.Service;
 import com.palavecino.backend.user.Role;
 import com.palavecino.backend.user.User;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -29,6 +31,7 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
+import org.thymeleaf.TemplateEngine;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -57,6 +60,18 @@ class AvailableSlotsIntegrationTest {
         @Bean
         Clock clock() {
             return Clock.fixed(FIXED_INSTANT, ZONE);
+        }
+    }
+
+    // This slice test only exercises findAvailableSlots(), which never sends mail; a stub
+    // EmailService satisfies the AppointmentService constructor without booting the real
+    // Thymeleaf/SMTP stack.
+    @TestConfiguration
+    static class EmailConfig {
+        @Bean
+        EmailService emailService() {
+            return new EmailService((to, subject, html) -> { }, new TemplateEngine(),
+                    "http://localhost:4200", Duration.ofHours(24), Duration.ofHours(1), 24);
         }
     }
 

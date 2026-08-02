@@ -2,16 +2,32 @@ import { Component, inject, computed, signal, HostBinding } from '@angular/core'
 import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs';
 import { HeaderComponent } from './shared/header/header.component';
+import { WhatsappButtonComponent } from './shared/whatsapp-button/whatsapp-button.component';
 import { AuthService } from './core/services/auth.service';
+
+// Auth-flow screens where neither the header nor the floating WhatsApp button adds value: the
+// user is mid-authentication (no useful chat yet, and the button would sit on top of a centered
+// form). Every other route — public landing and all authenticated screens — shows the button.
+const AUTH_FLOW_ROUTES = [
+  '/login',
+  '/register',
+  '/registro-exitoso',
+  '/verificar-email',
+  '/recuperar-contrasena',
+  '/restablecer-password',
+];
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, HeaderComponent],
+  imports: [RouterOutlet, HeaderComponent, WhatsappButtonComponent],
   template: `
     @if (showHeader()) {
       <app-header />
     }
     <router-outlet />
+    @if (showWhatsappButton()) {
+      <app-whatsapp-button />
+    }
   `,
 })
 export class App {
@@ -35,15 +51,10 @@ export class App {
 
   readonly showHeader = computed(() => {
     if (!this.authService.isLoggedIn()) return false;
-    const url = this.currentUrl();
-    const hideOn = [
-      '/login',
-      '/register',
-      '/registro-exitoso',
-      '/verificar-email',
-      '/recuperar-contrasena',
-      '/restablecer-password',
-    ];
-    return !hideOn.includes(url);
+    return !AUTH_FLOW_ROUTES.includes(this.currentUrl());
+  });
+
+  readonly showWhatsappButton = computed(() => {
+    return !AUTH_FLOW_ROUTES.includes(this.currentUrl());
   });
 }

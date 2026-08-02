@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turno cancelado</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f4f8f8;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f4f8f8; padding:24px;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px; background-color:#ffffff; border-radius:12px;">
+                    <tr>
+                        <td style="padding:32px; font-family:Verdana,Arial,sans-serif; color:#143034;">
+                            <p style="margin:0 0 20px; font-size:13px; letter-spacing:1px; text-transform:uppercase; color:#367079; font-weight:bold;">eQi – Especialidades Kinésicas</p>
+                            <h1 style="margin:0 0 16px; font-size:22px; color:#143034;">Turno cancelado</h1>
+                            <p style="margin:0 0 12px; font-size:15px; line-height:1.5;">
+                                Hola <span th:text="${patientFirstName}">Nombre</span>,
+                            </p>
+                            <p style="margin:0 0 20px; font-size:15px; line-height:1.5;">
+                                Te avisamos que el siguiente turno fue cancelado:
+                            </p>
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 24px; border:1px solid #dce7e8; border-radius:8px;">
+                                <tr>
+                                    <td style="padding:16px 18px; font-size:14px; line-height:1.7; color:#143034;">
+                                        <p style="margin:0 0 6px;"><strong style="color:#367079;">Profesional:</strong> <span th:text="${professionalName}">Prof. Nombre</span></p>
+                                        <p style="margin:0 0 6px;"><strong style="color:#367079;">Servicio:</strong> <span th:text="${serviceName}">Servicio</span></p>
+                                        <p style="margin:0 0 6px;"><strong style="color:#367079;">Fecha y hora:</strong> <span th:text="${appointmentDateTime}">lunes 3 de febrero de 2026, 09:00 hs</span></p>
+                                        <p style="margin:0 0 6px;"><strong style="color:#367079;">Duración:</strong> <span th:text="${durationMinutes + ' minutos'}">60 minutos</span></p>
+                                        <p style="margin:0;"><strong style="color:#367079;">Dirección:</strong> <span th:text="${clinicAddress}">Amancay 450, Neuquén</span></p>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="margin:0; font-size:13px; line-height:1.5; color:#4b5f62;">
+                                Si no fuiste vos quien canceló este turno, comunicate con el consultorio.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
