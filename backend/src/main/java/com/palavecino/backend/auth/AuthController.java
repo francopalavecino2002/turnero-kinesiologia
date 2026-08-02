@@ -2,9 +2,12 @@ package com.palavecino.backend.auth;
 
 import com.palavecino.backend.auth.dto.AuthResponse;
 import com.palavecino.backend.auth.dto.ChangePasswordRequest;
+import com.palavecino.backend.auth.dto.EmailRequest;
 import com.palavecino.backend.auth.dto.LoginRequest;
+import com.palavecino.backend.auth.dto.MessageResponse;
 import com.palavecino.backend.auth.dto.RegisterRequest;
 import com.palavecino.backend.auth.dto.RegisterResponse;
+import com.palavecino.backend.auth.dto.ResetPasswordRequest;
 import com.palavecino.backend.auth.dto.UserInfoResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -14,6 +17,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -34,6 +38,26 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/verify-email")
+    public ResponseEntity<MessageResponse> verifyEmail(@RequestParam String token) {
+        return ResponseEntity.ok(authService.verifyEmail(token));
+    }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<MessageResponse> resendVerification(@Valid @RequestBody EmailRequest request) {
+        return ResponseEntity.ok(authService.resendVerification(request.email()));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<MessageResponse> forgotPassword(@Valid @RequestBody EmailRequest request) {
+        return ResponseEntity.ok(authService.forgotPassword(request.email()));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<MessageResponse> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        return ResponseEntity.ok(authService.resetPassword(request.token(), request.newPassword()));
     }
 
     @GetMapping("/me")

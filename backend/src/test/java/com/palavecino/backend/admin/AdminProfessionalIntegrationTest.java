@@ -154,6 +154,7 @@ class AdminProfessionalIntegrationTest {
         assertThat(saved.getUser().getRole()).isEqualTo(Role.PROFESSIONAL);
         assertThat(saved.getUser().isMustChangePassword()).isTrue();
         assertThat(saved.getUser().isActive()).isTrue();
+        assertThat(saved.getUser().isEmailVerified()).isTrue();
     }
 
     @Test

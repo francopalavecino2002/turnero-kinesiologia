@@ -19,9 +19,40 @@ spring:
   flyway:
     enabled: true
 
+  # Transactional email (SMTP). All values come from environment variables: blank defaults
+  # mean "not configured" for local dev, where SmtpEmailSender logs and skips instead of
+  # failing. In production every MAIL_* var is required (see README env-var table).
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 clinic:
   max-concurrent-appointments: 2
   min-cancellation-hours: 24
+
+app:
+  # Public URL of the Angular frontend, used to build the links embedded in emails.
+  base-url: ${APP_BASE_URL:http://localhost:4200}
+  mail:
+    from-address: ${MAIL_FROM_ADDRESS:}
+    from-name: ${MAIL_FROM_NAME:eQi – Especialidades Kinésicas}
+  tokens:
+    # One-time token lifetimes (ISO-8601 durations). Password reset is deliberately shorter
+    # because it grants account access; email verification is more lenient.
+    email-verification-ttl: ${EMAIL_VERIFICATION_TOKEN_TTL:PT24H}
+    password-reset-ttl: ${PASSWORD_RESET_TOKEN_TTL:PT1H}
+    # Minimum time between two emails of the same kind (verification resend / password reset) for
+    # the same user. Protects the transactional-email quota on the provider from being burned by
+    # automated calls to the public resend/forgot endpoints. The response stays 200 either way.
+    resend-cooldown: ${RESEND_COOLDOWN:PT60S}
 
 jwt:
   # Dev-only fallback so a local `./mvnw spring-boot:run` works without extra setup. In any

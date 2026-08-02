@@ -10,6 +10,8 @@ import {
   RegisterResponse,
   UserInfoResponse,
   ChangePasswordRequest,
+  MessageResponse,
+  ResetPasswordRequest,
   Role,
 } from '../models';
 import { TokenStorageService } from './token-storage.service';
@@ -57,6 +59,26 @@ export class AuthService {
         this.tokenStorage.updateMustChangePassword(false);
       }),
     );
+  }
+
+  verifyEmail(token: string) {
+    return this.http.post<MessageResponse>(`${this.apiUrl}/verify-email`, null, {
+      params: { token },
+    });
+  }
+
+  resendVerification(email: string) {
+    return this.http.post<MessageResponse>(`${this.apiUrl}/resend-verification`, {
+      email,
+    });
+  }
+
+  forgotPassword(email: string) {
+    return this.http.post<MessageResponse>(`${this.apiUrl}/forgot-password`, { email });
+  }
+
+  resetPassword(request: ResetPasswordRequest) {
+    return this.http.post<MessageResponse>(`${this.apiUrl}/reset-password`, request);
   }
 
   getCurrentUser() {

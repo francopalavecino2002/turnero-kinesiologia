@@ -1,0 +1,29 @@
+<main class="eqi-shell">
+  <section class="eqi-card">
+    <img class="eqi-logo" src="assets/EQI-02.png" alt="eQi – Especialidades Kinésicas" width="120" height="120" />
+    <h1 class="eqi-heading">Verificación de email</h1>
+
+    @if (loading()) {
+      <div class="eqi-verify-loading" role="status">
+        <mat-progress-spinner diameter="32" mode="indeterminate" aria-label="Verificando tu email" />
+        <p class="eqi-subheading">Verificando tu email…</p>
+      </div>
+    } @else if (successMessage(); as message) {
+      <div class="eqi-success" role="status">
+        <mat-icon aria-hidden="true">check_circle</mat-icon>
+        <span>{{ message }}</span>
+      </div>
+      <button mat-raised-button color="primary" class="eqi-btn-block" routerLink="/login">
+        Ingresar
+      </button>
+    } @else if (errorMessage(); as message) {
+      <div class="eqi-error" role="alert">
+        <mat-icon aria-hidden="true">error_outline</mat-icon>
+        <span>{{ message }}</span>
+      </div>
+      <button mat-raised-button color="primary" class="eqi-btn-block" routerLink="/login">
+        Ir a la pantalla de ingreso
+      </button>
+    }
+  </section>
+</main>

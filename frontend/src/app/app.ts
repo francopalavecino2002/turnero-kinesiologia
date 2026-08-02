@@ -36,7 +36,14 @@ export class App {
   readonly showHeader = computed(() => {
     if (!this.authService.isLoggedIn()) return false;
     const url = this.currentUrl();
-    const hideOn = ['/login', '/register'];
+    const hideOn = [
+      '/login',
+      '/register',
+      '/registro-exitoso',
+      '/verificar-email',
+      '/recuperar-contrasena',
+      '/restablecer-password',
+    ];
     return !hideOn.includes(url);
   });
 }

@@ -1,0 +1,24 @@
+:host {
+  display: block;
+}
+
+.eqi-registration-steps {
+  margin: 0 0 18px;
+  padding-left: 18px;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: var(--eqi-ink-soft);
+}
+
+// Keep the button's label and spinner centered while loading.
+.eqi-btn-block mat-progress-spinner {
+  display: inline-block;
+}
+
+// Note shown under the "resend verification link" button.
+.eqi-resend-message {
+  margin: 10px 0 18px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--eqi-ink-soft);
+}

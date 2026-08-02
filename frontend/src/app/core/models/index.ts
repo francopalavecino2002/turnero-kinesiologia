@@ -107,6 +107,22 @@ export interface ErrorResponse {
   status: number;
   message: string;
   timestamp: string;
+  // Machine-readable discriminator for messages the UI must react to (e.g. the
+  // EMAIL_NOT_VERIFIED login rejection, so the user can request a new link).
+  code?: string;
+}
+
+export interface MessageResponse {
+  message: string;
+}
+
+export interface EmailRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
 }
 
 export interface AgendaEntry {

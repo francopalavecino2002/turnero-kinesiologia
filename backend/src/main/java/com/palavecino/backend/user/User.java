@@ -33,19 +33,33 @@ public class User {
     @Column(name = "must_change_password", nullable = false)
     private boolean mustChangePassword;
 
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified;
+
     protected User() {
     }
 
     public User(String email, String password, Role role, boolean active) {
-        this(email, password, role, active, false);
+        this(email, password, role, active, false, true);
     }
 
     public User(String email, String password, Role role, boolean active, boolean mustChangePassword) {
+        this(email, password, role, active, mustChangePassword, true);
+    }
+
+    /**
+     * Users created by the system (admin bootstrap, admin-created professionals, dev seeds, tests)
+     * default to {@code emailVerified = true}: they were onboarded by a trusted party, so nothing
+     * to verify. Only public self-registration in AuthService passes {@code emailVerified = false}.
+     */
+    public User(String email, String password, Role role, boolean active, boolean mustChangePassword,
+                boolean emailVerified) {
         this.email = email;
         this.password = password;
         this.role = role;
         this.active = active;
         this.mustChangePassword = mustChangePassword;
+        this.emailVerified = emailVerified;
     }
 
     public Long getId() {
@@ -90,5 +104,13 @@ public class User {
 
     public void setMustChangePassword(boolean mustChangePassword) {
         this.mustChangePassword = mustChangePassword;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerified;
+    }
+
+    public void setEmailVerified(boolean emailVerified) {
+        this.emailVerified = emailVerified;
     }
 }
