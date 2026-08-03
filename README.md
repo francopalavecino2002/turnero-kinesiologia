@@ -12,8 +12,8 @@ Full-stack appointment booking system for physiotherapy clinics — patient self
 
 ## Live Demo
 
-- **Frontend (app):** https://turnero-kinesiologia-murex.vercel.app
-- **Backend API:** https://turnero-backend-vmme.onrender.com/api/services (public endpoint)
+- **Frontend (app):** https://eqi-kinesiologia.vercel.app
+- **Backend API:** https://turnero-backend-vmme.onrender.com (public endpoint)
 
 > **Note:** The backend runs on Render's free tier, which suspends instances after 15 minutes of inactivity. The first request after an idle period may take 30–60 seconds while the service spins back up (cold start). Subsequent requests are fast.
 
