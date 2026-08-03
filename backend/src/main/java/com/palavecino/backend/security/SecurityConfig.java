@@ -65,7 +65,13 @@ public class SecurityConfig {
                                 "/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
                         .requestMatchers("/oauth2/authorization/google", "/login/oauth2/code/google").permitAll()
                         .requestMatchers("/api/appointments/available-slots").permitAll()
+                        // Public catalog + health endpoints are allowed for GET and HEAD alike: a HEAD is
+                        // semantically a GET without a response body, so whatever is public to GET must not
+                        // 401 on HEAD (uptime monitors use HEAD to stay light).
                         .requestMatchers(HttpMethod.GET, "/api/services/**", "/api/professionals/**").permitAll()
+                        .requestMatchers(HttpMethod.HEAD, "/api/services/**", "/api/professionals/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
+                        .requestMatchers(HttpMethod.HEAD, "/api/health").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
