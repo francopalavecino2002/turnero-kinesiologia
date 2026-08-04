@@ -76,6 +76,60 @@
   }
 }
 
+// --- Mobile tab strip (replaces the sidebar on small screens) -----------------
+// Horizontally scrollable so every section stays one tap away, even when the
+// labels would overflow a narrow viewport.
+
+.admin-layout__mobile-nav {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .admin-layout__mobile-nav {
+    position: sticky;
+    top: 0;
+    z-index: 900;
+    display: flex;
+    gap: 4px;
+    padding: 8px 12px;
+    overflow-x: auto;
+    background: var(--eqi-surface);
+    border-bottom: 1px solid var(--eqi-neutral);
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .admin-layout__mobile-nav-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    padding: 9px 14px;
+    border-radius: var(--eqi-radius-control);
+    color: var(--eqi-ink-soft);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    white-space: nowrap;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    &--active {
+      background: var(--eqi-primary);
+      color: #fff;
+      font-weight: 600;
+    }
+  }
+}
+
 .admin-layout__badge {
   margin-left: auto;
   padding: 2px 8px;

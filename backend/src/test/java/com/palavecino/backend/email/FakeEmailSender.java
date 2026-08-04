@@ -15,8 +15,8 @@ public class FakeEmailSender implements EmailSender {
     private final List<CapturedEmail> emails = new CopyOnWriteArrayList<>();
 
     @Override
-    public void sendEmail(String to, String subject, String htmlBody) {
-        emails.add(new CapturedEmail(to, subject, htmlBody));
+    public void sendEmail(String type, String to, String subject, String htmlBody) {
+        emails.add(new CapturedEmail(type, to, subject, htmlBody));
     }
 
     public List<CapturedEmail> all() {
@@ -48,6 +48,6 @@ public class FakeEmailSender implements EmailSender {
         return htmlBody.substring(start + marker.length(), start + marker.length() + 64);
     }
 
-    public record CapturedEmail(String to, String subject, String htmlBody) {
+    public record CapturedEmail(String type, String to, String subject, String htmlBody) {
     }
 }

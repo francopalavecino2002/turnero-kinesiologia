@@ -8,5 +8,5 @@ package com.palavecino.backend.email;
  */
 public interface EmailSender {
 
-    void sendEmail(String to, String subject, String htmlBody);
+    void sendEmail(String type, String to, String subject, String htmlBody);
 }

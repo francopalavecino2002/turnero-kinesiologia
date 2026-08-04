@@ -41,8 +41,8 @@
             <th>Día</th>
             <th>Horario</th>
             <th>Descripción</th>
-            <th>Servicio</th>
-            <th>Profesional</th>
+            <th class="admin-recurring-blocks__th-service">Servicio</th>
+            <th class="admin-recurring-blocks__th-professional">Profesional</th>
             <th>Estado</th>
             <th class="admin-recurring-blocks__th-actions">Acciones</th>
           </tr>
@@ -55,7 +55,7 @@
                 {{ block.startTime.substring(0, 5) }} – {{ block.endTime.substring(0, 5) }}
               </td>
               <td class="admin-recurring-blocks__td-desc">{{ block.description }}</td>
-              <td>
+              <td class="admin-recurring-blocks__td-service">
                 @if (block.serviceName) {
                   <span class="admin-recurring-blocks__chip admin-recurring-blocks__chip--service">
                     {{ block.serviceName }}
@@ -64,7 +64,7 @@
                   <span class="admin-recurring-blocks__muted">—</span>
                 }
               </td>
-              <td>
+              <td class="admin-recurring-blocks__td-professional">
                 @if (block.professionalName) {
                   {{ block.professionalName }}
                 } @else {

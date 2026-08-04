@@ -61,9 +61,11 @@ public class EmailService {
             context.setVariable("link", appBaseUrl + "/verificar-email?token=" + rawToken);
             context.setVariable("expirationHours", emailVerificationTtl.toHours());
             String html = templateEngine.process("email/verification", context);
-            emailSender.sendEmail(to, "Confirmá tu email – eQi", html);
+            emailSender.sendEmail("verification", to, "Confirmá tu email – eQi", html);
         } catch (Exception e) {
-            log.error("Failed to send verification email to {}", to, e);
+            // Safety net: SmtpEmailSender logs and swallows its own failures, so this only fires
+            // for template/preparation errors (or a custom sender that throws).
+            log.error("[mail:verification] failed to prepare/send to {}", EmailMask.mask(to), e);
         }
     }
 
@@ -75,9 +77,9 @@ public class EmailService {
             context.setVariable("link", appBaseUrl + "/restablecer-password?token=" + rawToken);
             context.setVariable("expirationHours", passwordResetTtl.toHours());
             String html = templateEngine.process("email/password-reset", context);
-            emailSender.sendEmail(to, "Restablecé tu contraseña – eQi", html);
+            emailSender.sendEmail("password-reset", to, "Restablecé tu contraseña – eQi", html);
         } catch (Exception e) {
-            log.error("Failed to send password-reset email to {}", to, e);
+            log.error("[mail:password-reset] failed to prepare/send to {}", EmailMask.mask(to), e);
         }
     }
 
@@ -94,9 +96,9 @@ public class EmailService {
             context.setVariable("clinicAddress", CLINIC_ADDRESS);
             context.setVariable("minCancellationHours", minCancellationHours);
             String html = templateEngine.process("email/appointment-booked", context);
-            emailSender.sendEmail(to, "Turno reservado – eQi", html);
+            emailSender.sendEmail("appointment-booked", to, "Turno reservado – eQi", html);
         } catch (Exception e) {
-            log.error("Failed to send appointment-booked email to {}", to, e);
+            log.error("[mail:appointment-booked] failed to prepare/send to {}", EmailMask.mask(to), e);
         }
     }
 
@@ -112,9 +114,9 @@ public class EmailService {
             context.setVariable("durationMinutes", durationMinutes);
             context.setVariable("clinicAddress", CLINIC_ADDRESS);
             String html = templateEngine.process("email/appointment-cancelled", context);
-            emailSender.sendEmail(to, "Turno cancelado – eQi", html);
+            emailSender.sendEmail("appointment-cancelled", to, "Turno cancelado – eQi", html);
         } catch (Exception e) {
-            log.error("Failed to send appointment-cancelled email to {}", to, e);
+            log.error("[mail:appointment-cancelled] failed to prepare/send to {}", EmailMask.mask(to), e);
         }
     }
 

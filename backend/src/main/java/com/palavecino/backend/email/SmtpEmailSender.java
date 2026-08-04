@@ -11,9 +11,13 @@ import org.springframework.stereotype.Component;
 
 /**
  * Spring Mail (JavaMail) implementation of {@link EmailSender}. Provider-agnostic: it talks to
- * whatever SMTP server is configured via the MAIL_* environment variables. With no SMTP host
- * configured (local dev, tests) it logs a warning and skips the send instead of failing, so a
- * missing mail config can never break the surrounding flow.
+ * whatever SMTP server is configured via the MAIL_* environment variables.
+ *
+ * <p>This class owns the full send-path logging so every attempt is visible: an INFO when the
+ * send is attempted (with a masked recipient), an INFO when it succeeds, and an ERROR with the
+ * full stack trace when it fails. Failures are logged and swallowed here — never propagated — so
+ * a broken mail provider can never fail the flow that triggered the email. With no SMTP host
+ * configured (local dev, tests) it logs a warning and skips the send instead of failing.
  */
 @Component
 public class SmtpEmailSender implements EmailSender {
@@ -37,9 +41,19 @@ public class SmtpEmailSender implements EmailSender {
     }
 
     @Override
-    public void sendEmail(String to, String subject, String htmlBody) {
+    public void sendEmail(String type, String to, String subject, String htmlBody) {
+        String maskedTo = EmailMask.mask(to);
+        log.info("[mail:{}] attempting to send '{}' to {}", type, subject, maskedTo);
+
         if (host.isBlank()) {
-            log.warn("MAIL_HOST is not configured; skipping email '{}' to {}", subject, to);
+            log.warn("[mail:{}] MAIL_HOST is not configured; skipping '{}' to {}", type, subject, maskedTo);
+            return;
+        }
+
+        String sender = resolveSender();
+        if (sender == null) {
+            log.warn("[mail:{}] neither MAIL_FROM_ADDRESS nor MAIL_USERNAME is configured; "
+                    + "skipping '{}' to {}", type, subject, maskedTo);
             return;
         }
 
@@ -47,22 +61,14 @@ public class SmtpEmailSender implements EmailSender {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            String sender = resolveSender();
-            if (sender == null) {
-                log.warn("Neither MAIL_FROM_ADDRESS nor MAIL_USERNAME is configured; "
-                        + "skipping email '{}' to {}", subject, to);
-                return;
-            }
-
             helper.setFrom(sender, fromName.isBlank() ? DEFAULT_FROM_NAME : fromName);
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(htmlBody, true);
             mailSender.send(message);
+            log.info("[mail:{}] sent '{}' to {}", type, subject, maskedTo);
         } catch (Exception e) {
-            // Rethrown as a runtime exception; EmailService catches it on the async thread and
-            // logs it, so a failed send never propagates into the request flow.
-            throw new IllegalStateException("Failed to send email '" + subject + "' to " + to, e);
+            log.error("[mail:{}] failed to send '{}' to {}", type, subject, maskedTo, e);
         }
     }
 

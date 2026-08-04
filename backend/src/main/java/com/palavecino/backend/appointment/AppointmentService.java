@@ -8,6 +8,7 @@ import com.palavecino.backend.appointment.dto.CreateAppointmentRequest;
 import com.palavecino.backend.appointment.dto.MonthSummaryResponse;
 import com.palavecino.backend.availability.Availability;
 import com.palavecino.backend.availability.AvailabilityRepository;
+import com.palavecino.backend.email.EmailMask;
 import com.palavecino.backend.email.EmailService;
 import com.palavecino.backend.exception.BusinessRuleViolationException;
 import com.palavecino.backend.exception.ConflictException;
@@ -29,6 +30,8 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +39,8 @@ import org.springframework.transaction.annotation.Transactional;
 @org.springframework.stereotype.Service
 @Transactional(readOnly = true)
 public class AppointmentService {
+
+    private static final Logger log = LoggerFactory.getLogger(AppointmentService.class);
 
     private final AppointmentRepository appointmentRepository;
     private final ProfessionalRepository professionalRepository;
@@ -162,6 +167,15 @@ public class AppointmentService {
         Professional professional = professionalRepository.findById(professionalId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Professional not found with id " + professionalId));
+
+        // The public slot calculator must not leak hours for a deactivated professional: the
+        // patient can't book them anyway (bookAppointment rejects it), so exposing slots would
+        // only produce a dead end. Same "invisible in the public catalog" rule as the detail
+        // endpoint and the per-service listing.
+        if (!professional.getUser().isActive()) {
+            throw new ResourceNotFoundException(
+                    "Professional not found with id " + professionalId);
+        }
 
         Service service = serviceRepository.findById(serviceId)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -297,6 +311,9 @@ public class AppointmentService {
                     service.getName(),
                     dateTime,
                     service.getDurationMinutes());
+        } else {
+            log.info("[mail:appointment-booked] notifications disabled for patient {}; "
+                    + "skipping confirmation email", EmailMask.mask(patient.getUser().getEmail()));
         }
 
         return AppointmentMapper.toResponse(appointmentRepository.findByIdWithDetails(appointment.getId())
@@ -331,6 +348,9 @@ public class AppointmentService {
                     appointment.getService().getName(),
                     appointment.getDateTime(),
                     appointment.getDurationMinutes());
+        } else {
+            log.info("[mail:appointment-cancelled] notifications disabled for patient {}; "
+                    + "skipping cancellation email", EmailMask.mask(appointment.getPatient().getUser().getEmail()));
         }
 
         return AppointmentMapper.toResponse(appointment);

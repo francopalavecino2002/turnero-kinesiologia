@@ -30,8 +30,8 @@
         <thead>
           <tr>
             <th>Nombre</th>
-            <th>Email</th>
-            <th>Servicios</th>
+            <th class="admin-professionals__th-email">Email</th>
+            <th class="admin-professionals__th-services">Servicios</th>
             <th>Estado</th>
             <th class="admin-professionals__th-actions">Acciones</th>
           </tr>
@@ -43,7 +43,7 @@
                 {{ pro.firstName }} {{ pro.lastName }}
               </td>
               <td class="admin-professionals__td-email">{{ pro.email }}</td>
-              <td>
+              <td class="admin-professionals__td-services">
                 @if (pro.services.length === 0) {
                   <span class="admin-professionals__no-services">—</span>
                 } @else {

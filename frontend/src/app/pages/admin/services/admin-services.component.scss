@@ -201,3 +201,35 @@
   gap: 8px;
   margin-top: 8px;
 }
+
+// --- Mobile ------------------------------------------------------------------
+
+@media (max-width: 767px) {
+  .admin-services__actions {
+    width: 100%;
+    justify-content: space-between;
+
+    .mat-mdc-slide-toggle {
+      font-size: 0.85rem;
+    }
+  }
+
+  .admin-services__table th,
+  .admin-services__table td {
+    padding: 12px;
+  }
+
+  .admin-services__overlay {
+    padding: 12px;
+  }
+
+  .admin-services__modal {
+    padding: 20px 16px;
+  }
+
+  .admin-services__form-actions {
+    button {
+      min-height: 44px;
+    }
+  }
+}
