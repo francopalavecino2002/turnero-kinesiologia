@@ -27,6 +27,11 @@ public class ProfessionalController {
     public ResponseEntity<ProfessionalResponse> getById(@PathVariable Long id) {
         Professional professional = professionalRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Professional not found with id " + id));
+        // A deactivated professional is invisible to the public: treat it like it doesn't exist
+        // so patients never see (or end up choosing) a professional they can't actually book.
+        if (!professional.getUser().isActive()) {
+            throw new ResourceNotFoundException("Professional not found with id " + id);
+        }
         return ResponseEntity.ok(ProfessionalMapper.toResponse(professional));
     }
 }

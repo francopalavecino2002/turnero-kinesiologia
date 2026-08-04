@@ -169,4 +169,32 @@
     gap: 0.5rem;
     margin-top: 0.5rem;
   }
+
+  // Mobile: keep the card-ish slot list comfortable and let the modal breathe.
+  @media (max-width: 767px) {
+    &__slot {
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    &__slot-info {
+      flex-wrap: wrap;
+      gap: 0.25rem 0.5rem;
+    }
+
+    &__modal {
+      padding: 1.25rem 1rem;
+      width: 100%;
+    }
+
+    &__overlay {
+      padding: 12px;
+    }
+
+    &__form-actions {
+      button {
+        min-height: 44px;
+      }
+    }
+  }
 }

@@ -8,7 +8,7 @@ package com.palavecino.backend.email;
 public class ThrowingEmailSender implements EmailSender {
 
     @Override
-    public void sendEmail(String to, String subject, String htmlBody) {
+    public void sendEmail(String type, String to, String subject, String htmlBody) {
         throw new IllegalStateException("Simulated SMTP failure for " + to);
     }
 }

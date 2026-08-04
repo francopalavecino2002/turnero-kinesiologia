@@ -279,3 +279,46 @@
     width: 100%;
   }
 }
+
+// --- Mobile ------------------------------------------------------------------
+
+@media (max-width: 767px) {
+  .admin-professionals__actions {
+    width: 100%;
+    justify-content: space-between;
+
+    .mat-mdc-slide-toggle {
+      font-size: 0.85rem;
+    }
+  }
+
+  // Email and the service chips are secondary detail: they stay available in the
+  // edit modal, so on a phone we drop them to keep the row readable without
+  // horizontal panning.
+  .admin-professionals__th-email,
+  .admin-professionals__td-email,
+  .admin-professionals__th-services,
+  .admin-professionals__td-services {
+    display: none;
+  }
+
+  .admin-professionals__table th,
+  .admin-professionals__table td {
+    padding: 12px;
+  }
+
+  .admin-professionals__overlay {
+    padding: 12px;
+  }
+
+  .admin-professionals__modal,
+  .admin-professionals__password-modal {
+    padding: 20px 16px;
+  }
+
+  .admin-professionals__form-actions {
+    button {
+      min-height: 44px;
+    }
+  }
+}

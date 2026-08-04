@@ -348,10 +348,12 @@ class AppointmentBookingIntegrationTest {
         // Regression: available-slots is a public endpoint. A JWT issued before the account was
         // deactivated must not turn the request into a 401 (the frontend interceptor redirects to
         // login on any 401): the filter should leave the request anonymous and let permitAll serve
-        // it, instead of short-circuiting before the authorization layer runs.
-        professional.getUser().setActive(false);
-        userRepository.save(professional.getUser());
-        String deactivatedToken = jwtService.generateToken(professional.getUser());
+        // it, instead of short-circuiting before the authorization layer runs. The account being
+        // deactivated here is the CALLER (a patient), so the professional stays active and the
+        // slots are served; a deactivated PROFESSIONAL is a separate rule covered elsewhere.
+        patientUser.setActive(false);
+        userRepository.save(patientUser);
+        String deactivatedToken = jwtService.generateToken(patientUser);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/appointments/available-slots")
                         .param("professionalId", professional.getId().toString())

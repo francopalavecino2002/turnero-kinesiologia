@@ -262,3 +262,44 @@
   gap: 8px;
   margin-top: 8px;
 }
+
+// --- Mobile ------------------------------------------------------------------
+
+@media (max-width: 767px) {
+  .admin-recurring-blocks__actions {
+    width: 100%;
+    justify-content: space-between;
+
+    .mat-mdc-slide-toggle {
+      font-size: 0.85rem;
+    }
+  }
+
+  // Service and professional are secondary detail (both editable in the modal):
+  // drop them on a phone so the row stays readable without horizontal panning.
+  .admin-recurring-blocks__th-service,
+  .admin-recurring-blocks__td-service,
+  .admin-recurring-blocks__th-professional,
+  .admin-recurring-blocks__td-professional {
+    display: none;
+  }
+
+  .admin-recurring-blocks__table th,
+  .admin-recurring-blocks__table td {
+    padding: 12px;
+  }
+
+  .admin-recurring-blocks__overlay {
+    padding: 12px;
+  }
+
+  .admin-recurring-blocks__modal {
+    padding: 20px 16px;
+  }
+
+  .admin-recurring-blocks__form-actions {
+    button {
+      min-height: 44px;
+    }
+  }
+}

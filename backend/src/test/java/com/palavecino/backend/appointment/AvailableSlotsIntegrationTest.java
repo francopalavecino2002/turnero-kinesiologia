@@ -8,6 +8,7 @@ import com.palavecino.backend.availability.Availability;
 import com.palavecino.backend.availability.AvailabilityRepository;
 import com.palavecino.backend.email.EmailService;
 import com.palavecino.backend.exception.BusinessRuleViolationException;
+import com.palavecino.backend.exception.ResourceNotFoundException;
 import com.palavecino.backend.patient.Patient;
 import com.palavecino.backend.professional.Professional;
 import com.palavecino.backend.service.Service;
@@ -70,7 +71,7 @@ class AvailableSlotsIntegrationTest {
     static class EmailConfig {
         @Bean
         EmailService emailService() {
-            return new EmailService((to, subject, html) -> { }, new TemplateEngine(),
+            return new EmailService((type, to, subject, html) -> { }, new TemplateEngine(),
                     "http://localhost:4200", Duration.ofHours(24), Duration.ofHours(1), 24);
         }
     }
@@ -228,5 +229,16 @@ class AvailableSlotsIntegrationTest {
                 professional2.getId(), emsellaService.getId(), OTHER_DAY))
                 .isInstanceOf(BusinessRuleViolationException.class)
                 .hasMessageContaining("does not offer service EMSELLA");
+    }
+
+    @Test
+    void deactivatedProfessionalReturnsNoSlots() {
+        professional1.getUser().setActive(false);
+        entityManager.flush();
+
+        assertThatThrownBy(() -> appointmentService.findAvailableSlots(
+                professional1.getId(), generalService.getId(), OTHER_DAY))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Professional not found with id " + professional1.getId());
     }
 }

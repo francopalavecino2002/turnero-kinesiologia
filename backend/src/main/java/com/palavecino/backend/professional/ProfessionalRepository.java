@@ -16,10 +16,14 @@ public interface ProfessionalRepository extends JpaRepository<Professional, Long
     // No JOIN FETCH needed here: the query only reads columns off Professional itself (mapped
     // straight to ProfessionalResponse), it never touches the lazy `services` collection, so
     // there's nothing further to fetch and no N+1 risk.
+    // Only ACTIVE professionals are exposed to the public catalog: a deactivated professional
+    // (User.active = false) must not show up as a bookable option for patients.
     @Query("""
             SELECT p FROM Professional p
             JOIN p.services s
+            JOIN p.user u
             WHERE s.id = :serviceId
+              AND u.active = true
             ORDER BY p.firstName, p.lastName
             """)
     List<Professional> findByServiceId(@Param("serviceId") Long serviceId);

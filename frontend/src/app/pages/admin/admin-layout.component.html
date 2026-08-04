@@ -1,41 +1,33 @@
 <div class="admin-layout">
   <aside class="admin-layout__sidebar">
     <h2 class="admin-layout__title">Panel de administración</h2>
-    <nav class="admin-layout__nav">
-      <a
-        class="admin-layout__nav-item"
-        routerLink="/admin/services"
-        routerLinkActive="admin-layout__nav-item--active"
-      >
-        <mat-icon>medical_services</mat-icon>
-        <span>Servicios</span>
-      </a>
-      <a
-        class="admin-layout__nav-item"
-        routerLink="/admin/professionals"
-        routerLinkActive="admin-layout__nav-item--active"
-      >
-        <mat-icon>people</mat-icon>
-        <span>Profesionales</span>
-      </a>
-      <a
-        class="admin-layout__nav-item"
-        routerLink="/admin/availability"
-        routerLinkActive="admin-layout__nav-item--active"
-      >
-        <mat-icon>schedule</mat-icon>
-        <span>Disponibilidades</span>
-      </a>
-      <a
-        class="admin-layout__nav-item"
-        routerLink="/admin/recurring-blocks"
-        routerLinkActive="admin-layout__nav-item--active"
-      >
-        <mat-icon>date_range</mat-icon>
-        <span>Bloques recurrentes</span>
-      </a>
+    <nav class="admin-layout__nav" aria-label="Secciones de administración">
+      @for (item of navItems; track item.route) {
+        <a
+          class="admin-layout__nav-item"
+          [routerLink]="item.route"
+          routerLinkActive="admin-layout__nav-item--active"
+        >
+          <mat-icon>{{ item.icon }}</mat-icon>
+          <span>{{ item.label }}</span>
+        </a>
+      }
     </nav>
   </aside>
+
+  <nav class="admin-layout__mobile-nav" aria-label="Secciones de administración">
+    @for (item of navItems; track item.route) {
+      <a
+        class="admin-layout__mobile-nav-item"
+        [routerLink]="item.route"
+        routerLinkActive="admin-layout__mobile-nav-item--active"
+      >
+        <mat-icon>{{ item.icon }}</mat-icon>
+        <span>{{ item.label }}</span>
+      </a>
+    }
+  </nav>
+
   <main class="admin-layout__content">
     <router-outlet />
   </main>

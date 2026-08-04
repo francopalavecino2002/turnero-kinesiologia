@@ -33,6 +33,13 @@ spring:
           auth: true
           starttls:
             enable: true
+          # Bounded SMTP timeouts: a send runs on a dedicated async thread, and without these a
+          # stalled mail server would block that thread indefinitely (invisible, since failures
+          # never propagate). 10s to open the connection, 15s to read server responses, 10s to
+          # write the message body.
+          connectiontimeout: 10000
+          timeout: 15000
+          writetimeout: 10000
 
 clinic:
   max-concurrent-appointments: 2

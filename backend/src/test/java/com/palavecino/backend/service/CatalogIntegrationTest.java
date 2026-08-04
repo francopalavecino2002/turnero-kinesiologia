@@ -52,6 +52,7 @@ class CatalogIntegrationTest {
 
     private Professional professionalOfferingActiveService;
     private Professional professionalOfferingOtherService;
+    private Professional deactivatedProfessionalOfferingActiveService;
 
     @BeforeEach
     void setUp() {
@@ -68,6 +69,11 @@ class CatalogIntegrationTest {
         professionalOfferingOtherService = new Professional("Alejandra", "González", user2);
         professionalOfferingOtherService.setServices(new HashSet<>(java.util.List.of(otherActiveService)));
         professionalOfferingOtherService = professionalRepository.save(professionalOfferingOtherService);
+
+        User inactiveUser = userRepository.save(new User(unique("pro3") + "@example.com", "hash", Role.PROFESSIONAL, false));
+        deactivatedProfessionalOfferingActiveService = new Professional("Rosa", "Fernández", inactiveUser);
+        deactivatedProfessionalOfferingActiveService.setServices(new HashSet<>(java.util.List.of(activeService)));
+        deactivatedProfessionalOfferingActiveService = professionalRepository.save(deactivatedProfessionalOfferingActiveService);
     }
 
     private static String unique(String prefix) {
@@ -134,6 +140,24 @@ class CatalogIntegrationTest {
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }
 
+    @Test
+    void listProfessionalsForServiceExcludesDeactivatedProfessionals() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/services/" + activeService.getId() + "/professionals"))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.length()").value(1))
+                .andExpect(MockMvcResultMatchers.jsonPath("$[0].id").value(professionalOfferingActiveService.getId()))
+                .andExpect(MockMvcResultMatchers.jsonPath("$[?(@.id == %d)]", deactivatedProfessionalOfferingActiveService.getId())
+                        .isEmpty());
+    }
+
+    @Test
+    void listProfessionalsForServiceIncludesActiveProfessionalEvenAfterAnotherIsDeactivated() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/services/" + activeService.getId() + "/professionals"))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$[?(@.id == %d)]", professionalOfferingActiveService.getId())
+                        .exists());
+    }
+
     // ---- GET /api/professionals/{id} ----
 
     @Test
@@ -143,6 +167,12 @@ class CatalogIntegrationTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(professionalOfferingActiveService.getId()))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.firstName").value("Marcela"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.lastName").value("Altamirano"));
+    }
+
+    @Test
+    void getDeactivatedProfessionalByIdReturns404() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/professionals/" + deactivatedProfessionalOfferingActiveService.getId()))
+                .andExpect(MockMvcResultMatchers.status().isNotFound());
     }
 
     @Test

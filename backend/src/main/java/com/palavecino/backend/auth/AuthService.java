@@ -8,6 +8,7 @@ import com.palavecino.backend.auth.dto.RegisterRequest;
 import com.palavecino.backend.auth.dto.RegisterResponse;
 import com.palavecino.backend.auth.dto.UserInfoResponse;
 import com.palavecino.backend.email.EmailService;
+import com.palavecino.backend.email.EmailMask;
 import com.palavecino.backend.exception.ConflictException;
 import com.palavecino.backend.exception.UnauthorizedException;
 import com.palavecino.backend.patient.Patient;
@@ -22,6 +23,8 @@ import com.palavecino.backend.usertoken.TokenType;
 import com.palavecino.backend.usertoken.UserToken;
 import com.palavecino.backend.usertoken.UserTokenService;
 import java.time.Duration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -29,6 +32,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private static final String INVALID_CREDENTIALS_MESSAGE = "Invalid email or password";
 
@@ -162,10 +167,16 @@ public class AuthService {
         // quota by spamming this public endpoint for a real address: internally we skip both the
         // token issuance and the send, but from outside the response looks identical.
         userRepository.findByEmail(email).ifPresent(user -> {
-            if (user.isActive() && !user.isEmailVerified()
-                    && !userTokenService.wasIssuedWithin(user, TokenType.EMAIL_VERIFICATION, resendCooldown)) {
-                String token = userTokenService.issue(user, TokenType.EMAIL_VERIFICATION);
-                emailService.sendVerificationEmail(user.getEmail(), resolveName(user).firstName(), token);
+            if (user.isActive() && !user.isEmailVerified()) {
+                if (userTokenService.wasIssuedWithin(user, TokenType.EMAIL_VERIFICATION, resendCooldown)) {
+                    // The response stays 200 (anti-enumeration), but the cooldown is the reason no
+                    // email goes out — log it so "my verification mail didn't arrive" is explainable.
+                    log.warn("[mail:verification] resend requested for {} within cooldown {}; suppressing send",
+                            EmailMask.mask(email), resendCooldown);
+                } else {
+                    String token = userTokenService.issue(user, TokenType.EMAIL_VERIFICATION);
+                    emailService.sendVerificationEmail(user.getEmail(), resolveName(user).firstName(), token);
+                }
             }
         });
         return new MessageResponse(
@@ -181,10 +192,14 @@ public class AuthService {
         userRepository.findByEmail(email).ifPresent(user -> {
             // Only active, verified LOCAL accounts get a reset link: sending one to a stray
             // unverified account would be noise, and the verified account is what we're protecting.
-            if (user.isActive() && user.isEmailVerified() && user.getAuthProvider() == AuthProvider.LOCAL
-                    && !userTokenService.wasIssuedWithin(user, TokenType.PASSWORD_RESET, resendCooldown)) {
-                String token = userTokenService.issue(user, TokenType.PASSWORD_RESET);
-                emailService.sendPasswordResetEmail(user.getEmail(), resolveName(user).firstName(), token);
+            if (user.isActive() && user.isEmailVerified() && user.getAuthProvider() == AuthProvider.LOCAL) {
+                if (userTokenService.wasIssuedWithin(user, TokenType.PASSWORD_RESET, resendCooldown)) {
+                    log.warn("[mail:password-reset] forgot-password for {} within cooldown {}; suppressing send",
+                            EmailMask.mask(email), resendCooldown);
+                } else {
+                    String token = userTokenService.issue(user, TokenType.PASSWORD_RESET);
+                    emailService.sendPasswordResetEmail(user.getEmail(), resolveName(user).firstName(), token);
+                }
             }
         });
         return new MessageResponse(
