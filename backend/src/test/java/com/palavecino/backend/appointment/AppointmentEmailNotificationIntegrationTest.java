@@ -128,7 +128,7 @@ class AppointmentEmailNotificationIntegrationTest {
     }
 
     @Test
-    void bookingSendsConfirmationEmailWithAppointmentDetails() throws Exception {
+    void bookingSendsConfirmationEmailsToPatientAndProfessional() throws Exception {
         LocalDateTime dateTime = LocalDateTime.of(bookingDate, LocalTime.of(9, 0));
         String body = """
                 {"professionalId": %d, "serviceId": %d, "dateTime": "%s"}
@@ -140,20 +140,30 @@ class AppointmentEmailNotificationIntegrationTest {
                         .content(body))
                 .andExpect(MockMvcResultMatchers.status().isCreated());
 
-        assertThat(emailSender.count()).isEqualTo(1);
-        FakeEmailSender.CapturedEmail mail = emailSender.all().get(0);
-        assertThat(mail.to()).isEqualTo(patientUser.getEmail());
-        assertThat(mail.subject()).contains("Turno reservado");
-        assertThat(mail.htmlBody())
+        assertThat(emailSender.count()).isEqualTo(2);
+
+        FakeEmailSender.CapturedEmail toPatient = emailSender.all().get(0);
+        assertThat(toPatient.to()).isEqualTo(patientUser.getEmail());
+        assertThat(toPatient.subject()).contains("Turno reservado");
+        assertThat(toPatient.htmlBody())
                 .contains("Ana Gomez")
                 .contains("General")
                 .contains("Amancay 450")
                 .contains("60 minutos")
                 .contains("09:00");
+
+        FakeEmailSender.CapturedEmail toProfessional = emailSender.all().get(1);
+        assertThat(toProfessional.to()).isEqualTo(professional.getUser().getEmail());
+        assertThat(toProfessional.subject()).contains("Te reservaron un turno");
+        assertThat(toProfessional.htmlBody())
+                .contains("Maria Lopez")
+                .contains("General")
+                .contains("60 minutos")
+                .contains("09:00");
     }
 
     @Test
-    void bookingByPatientWithNotificationsDisabledSendsNoEmail() throws Exception {
+    void bookingByPatientWithNotificationsDisabledStillNotifiesProfessional() throws Exception {
         User optedOutUser = userRepository.save(new User(unique("optout") + "@example.com", "hash", Role.PATIENT, true));
         patientRepository.save(new Patient("Rosa", "Mendez", "222222", optedOutUser, false));
 
@@ -168,11 +178,16 @@ class AppointmentEmailNotificationIntegrationTest {
                         .content(body))
                 .andExpect(MockMvcResultMatchers.status().isCreated());
 
-        assertThat(emailSender.count()).isZero();
+        // The patient opted out, but the professional is always notified of new bookings.
+        assertThat(emailSender.count()).isEqualTo(1);
+        FakeEmailSender.CapturedEmail mail = emailSender.all().get(0);
+        assertThat(mail.to()).isEqualTo(professional.getUser().getEmail());
+        assertThat(mail.subject()).contains("Te reservaron un turno");
+        assertThat(mail.htmlBody()).contains("Rosa Mendez");
     }
 
     @Test
-    void bookingCancelledByPatientSendsCancellationEmail() throws Exception {
+    void bookingCancelledByPatientSendsCancellationEmailsToPatientAndProfessional() throws Exception {
         LocalDateTime dateTime = LocalDateTime.now().plusHours(48);
         Appointment appointment = createAppointment(AppointmentStatus.BOOKED, dateTime);
 
@@ -180,20 +195,30 @@ class AppointmentEmailNotificationIntegrationTest {
                         .header("Authorization", "Bearer " + patientToken()))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        assertThat(emailSender.count()).isEqualTo(1);
-        FakeEmailSender.CapturedEmail mail = emailSender.all().get(0);
-        assertThat(mail.to()).isEqualTo(patientUser.getEmail());
-        assertThat(mail.subject()).contains("Turno cancelado");
-        assertThat(mail.htmlBody())
+        assertThat(emailSender.count()).isEqualTo(2);
+
+        FakeEmailSender.CapturedEmail toPatient = emailSender.all().get(0);
+        assertThat(toPatient.to()).isEqualTo(patientUser.getEmail());
+        assertThat(toPatient.subject()).contains("Turno cancelado");
+        assertThat(toPatient.htmlBody())
                 .contains("Ana Gomez")
                 .contains("General")
                 .contains("Amancay 450");
+
+        FakeEmailSender.CapturedEmail toProfessional = emailSender.all().get(1);
+        assertThat(toProfessional.to()).isEqualTo(professional.getUser().getEmail());
+        assertThat(toProfessional.subject()).contains("Turno cancelado");
+        assertThat(toProfessional.htmlBody())
+                .contains("Maria Lopez")
+                .contains("General");
     }
 
     @Test
-    void bookingCancelledByProfessionalSendsCancellationEmailToPatient() throws Exception {
+    void bookingCancelledByProfessionalSendsCancellationEmailToPatientOnly() throws Exception {
         // Cancellation is role-agnostic: whoever cancels (patient, professional or admin), the
-        // email goes to the patient. The 24h notice rule only applies to patient-initiated
+        // email goes to the patient. The professional is NOT notified when they cancelled the
+        // appointment themselves from their own agenda (that would be informing them of an action
+        // they just performed). The 24h notice rule only applies to patient-initiated
         // cancellations, so a professional can cancel with less notice.
         LocalDateTime dateTime = LocalDateTime.now().plusHours(1);
         Appointment appointment = createAppointment(AppointmentStatus.BOOKED, dateTime);
@@ -210,5 +235,29 @@ class AppointmentEmailNotificationIntegrationTest {
                 .contains("Ana Gomez")
                 .contains("General")
                 .contains("Amancay 450");
+    }
+
+    @Test
+    void bookingCancelledByAdminNotifiesPatientAndProfessional() throws Exception {
+        User adminUser = userRepository.save(new User(unique("admin") + "@example.com", "hash", Role.ADMIN, true));
+        LocalDateTime dateTime = LocalDateTime.now().plusHours(1);
+        Appointment appointment = createAppointment(AppointmentStatus.BOOKED, dateTime);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments/" + appointment.getId() + "/cancel")
+                        .header("Authorization", "Bearer " + jwtService.generateToken(adminUser)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        assertThat(emailSender.count()).isEqualTo(2);
+
+        FakeEmailSender.CapturedEmail toPatient = emailSender.all().get(0);
+        assertThat(toPatient.to()).isEqualTo(patientUser.getEmail());
+        assertThat(toPatient.subject()).contains("Turno cancelado");
+
+        FakeEmailSender.CapturedEmail toProfessional = emailSender.all().get(1);
+        assertThat(toProfessional.to()).isEqualTo(professional.getUser().getEmail());
+        assertThat(toProfessional.subject()).contains("Turno cancelado");
+        assertThat(toProfessional.htmlBody())
+                .contains("Maria Lopez")
+                .contains("General");
     }
 }

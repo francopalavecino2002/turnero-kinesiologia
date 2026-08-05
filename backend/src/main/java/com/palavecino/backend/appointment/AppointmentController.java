@@ -56,7 +56,7 @@ public class AppointmentController {
     }
 
     @GetMapping("/my-agenda")
-    @PreAuthorize("hasRole('PROFESSIONAL')")
+    @PreAuthorize("hasAnyRole('PROFESSIONAL', 'ADMIN')")
     public ResponseEntity<List<AppointmentResponse>> getMyAgenda(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             Authentication authentication) {

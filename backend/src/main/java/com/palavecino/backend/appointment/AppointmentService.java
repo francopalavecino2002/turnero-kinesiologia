@@ -316,6 +316,17 @@ public class AppointmentService {
                     + "skipping confirmation email", EmailMask.mask(patient.getUser().getEmail()));
         }
 
+        // The professional is always notified of bookings to their agenda. These are operational
+        // emails (their own schedule), not optional marketing, so unlike the patient there is no
+        // preference flag to gate them.
+        emailService.sendAppointmentBookedToProfessionalEmail(
+                professional.getUser().getEmail(),
+                professional.getFirstName(),
+                patient.getFirstName() + " " + patient.getLastName(),
+                service.getName(),
+                dateTime,
+                service.getDurationMinutes());
+
         return AppointmentMapper.toResponse(appointmentRepository.findByIdWithDetails(appointment.getId())
                 .orElseThrow());
     }
@@ -351,6 +362,26 @@ public class AppointmentService {
         } else {
             log.info("[mail:appointment-cancelled] notifications disabled for patient {}; "
                     + "skipping cancellation email", EmailMask.mask(appointment.getPatient().getUser().getEmail()));
+        }
+
+        // The professional is notified whenever one of their appointments is cancelled — whether
+        // the patient or the admin did it — but NOT when they cancelled it themselves from their
+        // own agenda: telling them about an action they just performed is noise. The check keys on
+        // the caller's linked professional profile (if any), regardless of the account role, so an
+        // ADMIN who also has a professional profile gets the same self-cancellation silence.
+        boolean cancelledByTheProfessionalItself = currentUser.professionalId() != null
+                && appointment.getProfessional().getId().equals(currentUser.professionalId());
+        if (cancelledByTheProfessionalItself) {
+            log.info("[mail:appointment-cancelled-professional] skipped: professional {} cancelled "
+                    + "their own appointment", EmailMask.mask(appointment.getProfessional().getUser().getEmail()));
+        } else {
+            emailService.sendAppointmentCancelledToProfessionalEmail(
+                    appointment.getProfessional().getUser().getEmail(),
+                    appointment.getProfessional().getFirstName(),
+                    appointment.getPatient().getFirstName() + " " + appointment.getPatient().getLastName(),
+                    appointment.getService().getName(),
+                    appointment.getDateTime(),
+                    appointment.getDurationMinutes());
         }
 
         return AppointmentMapper.toResponse(appointment);
@@ -410,6 +441,9 @@ public class AppointmentService {
     }
 
     private Professional requireProfessional(AuthenticatedUser currentUser) {
+        if (currentUser.professionalId() == null) {
+            throw new ResourceNotFoundException("Professional record not found for current user");
+        }
         return professionalRepository.findById(currentUser.professionalId())
                 .orElseThrow(() -> new ResourceNotFoundException("Professional record not found for current user"));
     }
