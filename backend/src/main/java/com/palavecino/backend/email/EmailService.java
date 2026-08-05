@@ -120,6 +120,53 @@ public class EmailService {
         }
     }
 
+    @Async("mailTaskExecutor")
+    public void sendAppointmentBookedToProfessionalEmail(String to, String professionalFirstName, String patientName,
+                                                         String serviceName, LocalDateTime dateTime, int durationMinutes) {
+        try {
+            Context context = new Context();
+            context.setVariable("professionalFirstName", professionalFirstName);
+            context.setVariable("patientName", patientName);
+            context.setVariable("serviceName", serviceName);
+            context.setVariable("appointmentDateTime", formatAppointmentDateTime(dateTime));
+            context.setVariable("durationMinutes", durationMinutes);
+            String html = templateEngine.process("email/appointment-booked-professional", context);
+            emailSender.sendEmail("appointment-booked-professional", to, "Te reservaron un turno – eQi", html);
+        } catch (Exception e) {
+            log.error("[mail:appointment-booked-professional] failed to prepare/send to {}", EmailMask.mask(to), e);
+        }
+    }
+
+    @Async("mailTaskExecutor")
+    public void sendAppointmentCancelledToProfessionalEmail(String to, String professionalFirstName, String patientName,
+                                                            String serviceName, LocalDateTime dateTime, int durationMinutes) {
+        try {
+            Context context = new Context();
+            context.setVariable("professionalFirstName", professionalFirstName);
+            context.setVariable("patientName", patientName);
+            context.setVariable("serviceName", serviceName);
+            context.setVariable("appointmentDateTime", formatAppointmentDateTime(dateTime));
+            context.setVariable("durationMinutes", durationMinutes);
+            String html = templateEngine.process("email/appointment-cancelled-professional", context);
+            emailSender.sendEmail("appointment-cancelled-professional", to, "Turno cancelado – eQi", html);
+        } catch (Exception e) {
+            log.error("[mail:appointment-cancelled-professional] failed to prepare/send to {}", EmailMask.mask(to), e);
+        }
+    }
+
+    @Async("mailTaskExecutor")
+    public void sendWelcomeProfessionalEmail(String to, String professionalFirstName) {
+        try {
+            Context context = new Context();
+            context.setVariable("professionalFirstName", professionalFirstName);
+            context.setVariable("appUrl", appBaseUrl);
+            String html = templateEngine.process("email/professional-welcome", context);
+            emailSender.sendEmail("professional-welcome", to, "Bienvenido/a a eQi – tu cuenta ya está activa", html);
+        } catch (Exception e) {
+            log.error("[mail:professional-welcome] failed to prepare/send to {}", EmailMask.mask(to), e);
+        }
+    }
+
     private String formatAppointmentDateTime(LocalDateTime dateTime) {
         return APPOINTMENT_DATE_TIME_FORMATTER.format(dateTime);
     }

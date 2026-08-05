@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bienvenido/a a eQi</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f4f8f8;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f4f8f8; padding:24px;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px; background-color:#ffffff; border-radius:12px;">
+                    <tr>
+                        <td style="padding:32px; font-family:Verdana,Arial,sans-serif; color:#143034;">
+                            <p style="margin:0 0 20px; font-size:13px; letter-spacing:1px; text-transform:uppercase; color:#367079; font-weight:bold;">eQi – Especialidades Kinésicas</p>
+                            <h1 style="margin:0 0 16px; font-size:22px; color:#143034;">Bienvenido/a a eQi</h1>
+                            <p style="margin:0 0 12px; font-size:15px; line-height:1.5;">
+                                Hola <span th:text="${professionalFirstName}">Nombre</span>,
+                            </p>
+                            <p style="margin:0 0 12px; font-size:15px; line-height:1.5;">
+                                Te damos la bienvenida al sistema de gestión de turnos del consultorio.
+                                El administrador ya activó tu cuenta: vas a poder gestionar tu agenda,
+                                tus horarios de disponibilidad y los servicios que ofrecés.
+                            </p>
+                            <p style="margin:0 0 20px; font-size:15px; line-height:1.5;">
+                                Para definir tu contraseña, entrá al sistema y usá la opción
+                                <strong>“¿Olvidaste tu contraseña?”</strong> en el inicio de sesión: te va a llegar
+                                un link para restablecerla.
+                            </p>
+                            <p style="margin:0 0 24px; text-align:center;">
+                                <a th:href="${appUrl}" style="display:inline-block; padding:12px 28px; background-color:#367079; color:#ffffff; text-decoration:none; border-radius:8px; font-size:14px; font-weight:bold; font-family:Verdana,Arial,sans-serif;">Ingresar a eQi</a>
+                            </p>
+                            <p style="margin:0; font-size:13px; line-height:1.5; color:#4b5f62;">
+                                Si no esperabas esta cuenta, comunicate con el consultorio.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
