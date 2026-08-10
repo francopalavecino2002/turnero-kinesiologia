@@ -5,7 +5,9 @@ import com.palavecino.backend.appointment.dto.AppointmentMapper;
 import com.palavecino.backend.appointment.dto.AppointmentResponse;
 import com.palavecino.backend.appointment.dto.AvailableSlotResponse;
 import com.palavecino.backend.appointment.dto.CreateAppointmentRequest;
+import com.palavecino.backend.appointment.dto.GuestPatientRequest;
 import com.palavecino.backend.appointment.dto.MonthSummaryResponse;
+import com.palavecino.backend.appointment.dto.StaffBookAppointmentRequest;
 import com.palavecino.backend.availability.Availability;
 import com.palavecino.backend.availability.AvailabilityRepository;
 import com.palavecino.backend.email.EmailMask;
@@ -240,19 +242,65 @@ public class AppointmentService {
     @Transactional
     public AppointmentResponse bookAppointment(CreateAppointmentRequest request, AuthenticatedUser currentUser) {
         Patient patient = requirePatient(currentUser);
+        return bookAppointmentInternal(patient, request.professionalId(), request.serviceId(),
+                request.dateTime(), currentUser);
+    }
 
-        Professional professional = professionalRepository.findById(request.professionalId())
+    /**
+     * Staff (PROFESSIONAL or ADMIN) booking an appointment on behalf of a patient who called or
+     * walked in - either an existing registered patient (patientId) or a new guest with no
+     * account (guestPatient). Runs through the exact same availability/capacity/service-offered
+     * validation as the online patient flow via {@link #bookAppointmentInternal}; nothing here is
+     * allowed to bypass those rules.
+     */
+    @Transactional
+    public AppointmentResponse staffBookAppointment(StaffBookAppointmentRequest request, AuthenticatedUser currentUser) {
+        if (currentUser.isProfessional() && !request.professionalId().equals(currentUser.professionalId())) {
+            throw new AccessDeniedException("You can only book appointments on your own agenda");
+        }
+
+        boolean hasPatientId = request.patientId() != null;
+        boolean hasGuestPatient = request.guestPatient() != null;
+        if (hasPatientId == hasGuestPatient) {
+            throw new BusinessRuleViolationException(
+                    "Exactly one of patientId or guestPatient must be provided");
+        }
+
+        Patient patient = hasPatientId
+                ? patientRepository.findById(request.patientId())
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Patient not found with id " + request.patientId()))
+                : resolveOrCreateGuestPatient(request.guestPatient());
+
+        return bookAppointmentInternal(patient, request.professionalId(), request.serviceId(),
+                request.dateTime(), currentUser);
+    }
+
+    /**
+     * Reuses an existing guest patient by phone rather than creating a duplicate row every time
+     * the same walk-in calls again. Only guests are looked up this way - an existing registered
+     * patient is always referenced by patientId, never re-matched by phone.
+     */
+    private Patient resolveOrCreateGuestPatient(GuestPatientRequest guestPatient) {
+        return patientRepository.findByGuestPhone(guestPatient.phone())
+                .orElseGet(() -> patientRepository.save(
+                        Patient.guest(guestPatient.name(), guestPatient.phone(), guestPatient.email())));
+    }
+
+    private AppointmentResponse bookAppointmentInternal(Patient patient, Long professionalId, Long serviceId,
+                                                          LocalDateTime dateTime, AuthenticatedUser currentUser) {
+        Professional professional = professionalRepository.findById(professionalId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Professional not found with id " + request.professionalId()));
+                        "Professional not found with id " + professionalId));
 
         if (!professional.getUser().isActive()) {
             throw new BusinessRuleViolationException(
                     "Este profesional no está disponible actualmente.");
         }
 
-        Service service = serviceRepository.findById(request.serviceId())
+        Service service = serviceRepository.findById(serviceId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Service not found with id " + request.serviceId()));
+                        "Service not found with id " + serviceId));
 
         if (!professional.getServices().contains(service)) {
             throw new BusinessRuleViolationException(
@@ -260,7 +308,6 @@ public class AppointmentService {
                             + " does not offer service " + service.getName());
         }
 
-        LocalDateTime dateTime = request.dateTime();
         LocalDateTime rangeEnd = dateTime.plusMinutes(service.getDurationMinutes());
 
         appointmentRepository.acquireAdvisoryLock(professional.getId().intValue());
@@ -301,31 +348,42 @@ public class AppointmentService {
         appointment = appointmentRepository.save(appointment);
 
         // Email send is async and failure-tolerant (see EmailService), so a broken mail provider
-        // can never fail the booking or force a rollback of the already-saved appointment. Like
-        // the cancellation notice, it only goes out if the patient opted into notifications.
-        if (patient.isNotificationsEnabled()) {
+        // can never fail the booking or force a rollback of the already-saved appointment. Gated by
+        // both the patient's notification preference and having an email at all - a guest patient
+        // with no email simply doesn't get a confirmation, no error.
+        if (patient.isNotificationsEnabled() && patient.getEmail() != null) {
             emailService.sendAppointmentBookedEmail(
-                    patient.getUser().getEmail(),
+                    patient.getEmail(),
                     patient.getFirstName(),
                     professional.getFirstName() + " " + professional.getLastName(),
                     service.getName(),
                     dateTime,
                     service.getDurationMinutes());
         } else {
-            log.info("[mail:appointment-booked] notifications disabled for patient {}; "
-                    + "skipping confirmation email", EmailMask.mask(patient.getUser().getEmail()));
+            log.info("[mail:appointment-booked] notifications disabled or no email for patient {}; "
+                    + "skipping confirmation email", EmailMask.mask(patient.getEmail()));
         }
 
-        // The professional is always notified of bookings to their agenda. These are operational
-        // emails (their own schedule), not optional marketing, so unlike the patient there is no
-        // preference flag to gate them.
-        emailService.sendAppointmentBookedToProfessionalEmail(
-                professional.getUser().getEmail(),
-                professional.getFirstName(),
-                patient.getFirstName() + " " + patient.getLastName(),
-                service.getName(),
-                dateTime,
-                service.getDurationMinutes());
+        // The professional is always notified of bookings to their agenda - these are operational
+        // emails (their own schedule), not optional marketing, so there is no preference flag to
+        // gate them - EXCEPT when the professional is the one who booked it themselves (staff
+        // booking on their own agenda): telling them about an action they just performed is noise.
+        // For the online patient-booking path currentUser is always a PATIENT, so
+        // currentUser.professionalId() is null and the professional is always notified, unchanged.
+        boolean bookedByTheProfessionalItself = currentUser.professionalId() != null
+                && professional.getId().equals(currentUser.professionalId());
+        if (bookedByTheProfessionalItself) {
+            log.info("[mail:appointment-booked-professional] skipped: professional {} booked "
+                    + "their own appointment", EmailMask.mask(professional.getUser().getEmail()));
+        } else {
+            emailService.sendAppointmentBookedToProfessionalEmail(
+                    professional.getUser().getEmail(),
+                    professional.getFirstName(),
+                    patient.getFirstName() + " " + patient.getLastName(),
+                    service.getName(),
+                    dateTime,
+                    service.getDurationMinutes());
+        }
 
         return AppointmentMapper.toResponse(appointmentRepository.findByIdWithDetails(appointment.getId())
                 .orElseThrow());
@@ -351,17 +409,17 @@ public class AppointmentService {
         // Cancellation notices respect the patient's notification preference; the verification
         // and password-recovery emails are NOT gated by it (they are required to use the account,
         // not optional notifications), so those paths stay untouched.
-        if (appointment.getPatient().isNotificationsEnabled()) {
+        if (appointment.getPatient().isNotificationsEnabled() && appointment.getPatient().getEmail() != null) {
             emailService.sendAppointmentCancelledEmail(
-                    appointment.getPatient().getUser().getEmail(),
+                    appointment.getPatient().getEmail(),
                     appointment.getPatient().getFirstName(),
                     appointment.getProfessional().getFirstName() + " " + appointment.getProfessional().getLastName(),
                     appointment.getService().getName(),
                     appointment.getDateTime(),
                     appointment.getDurationMinutes());
         } else {
-            log.info("[mail:appointment-cancelled] notifications disabled for patient {}; "
-                    + "skipping cancellation email", EmailMask.mask(appointment.getPatient().getUser().getEmail()));
+            log.info("[mail:appointment-cancelled] notifications disabled or no email for patient {}; "
+                    + "skipping cancellation email", EmailMask.mask(appointment.getPatient().getEmail()));
         }
 
         // The professional is notified whenever one of their appointments is cancelled — whether
@@ -391,17 +449,17 @@ public class AppointmentService {
     public AppointmentResponse confirm(Long id, AuthenticatedUser currentUser) {
         Appointment appointment = transitionAsStaff(id, currentUser, AppointmentStatus.CONFIRMED);
 
-        if (appointment.getPatient().isNotificationsEnabled()) {
+        if (appointment.getPatient().isNotificationsEnabled() && appointment.getPatient().getEmail() != null) {
             emailService.sendAppointmentConfirmedEmail(
-                    appointment.getPatient().getUser().getEmail(),
+                    appointment.getPatient().getEmail(),
                     appointment.getPatient().getFirstName(),
                     appointment.getProfessional().getFirstName() + " " + appointment.getProfessional().getLastName(),
                     appointment.getService().getName(),
                     appointment.getDateTime(),
                     appointment.getDurationMinutes());
         } else {
-            log.info("[mail:appointment-confirmed] notifications disabled for patient {}; "
-                    + "skipping confirmation email", EmailMask.mask(appointment.getPatient().getUser().getEmail()));
+            log.info("[mail:appointment-confirmed] notifications disabled or no email for patient {}; "
+                    + "skipping confirmation email", EmailMask.mask(appointment.getPatient().getEmail()));
         }
 
         return AppointmentMapper.toResponse(appointment);
@@ -435,17 +493,17 @@ public class AppointmentService {
     public AppointmentResponse noShow(Long id, AuthenticatedUser currentUser) {
         Appointment appointment = transitionAsStaff(id, currentUser, AppointmentStatus.NO_SHOW);
 
-        if (appointment.getPatient().isNotificationsEnabled()) {
+        if (appointment.getPatient().isNotificationsEnabled() && appointment.getPatient().getEmail() != null) {
             emailService.sendAppointmentNoShowEmail(
-                    appointment.getPatient().getUser().getEmail(),
+                    appointment.getPatient().getEmail(),
                     appointment.getPatient().getFirstName(),
                     appointment.getProfessional().getFirstName() + " " + appointment.getProfessional().getLastName(),
                     appointment.getService().getName(),
                     appointment.getDateTime(),
                     appointment.getDurationMinutes());
         } else {
-            log.info("[mail:appointment-no-show] notifications disabled for patient {}; "
-                    + "skipping no-show email", EmailMask.mask(appointment.getPatient().getUser().getEmail()));
+            log.info("[mail:appointment-no-show] notifications disabled or no email for patient {}; "
+                    + "skipping no-show email", EmailMask.mask(appointment.getPatient().getEmail()));
         }
 
         return AppointmentMapper.toResponse(appointment);

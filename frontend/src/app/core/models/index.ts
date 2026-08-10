@@ -76,6 +76,30 @@ export interface CreateAppointmentRequest {
   dateTime: string;
 }
 
+export interface GuestPatientRequest {
+  name: string;
+  phone: string;
+  email?: string;
+}
+
+// Manual booking by staff (PROFESSIONAL/ADMIN) on behalf of a patient. Exactly one of patientId
+// or guestPatient must be set - never both, never neither.
+export interface StaffBookAppointmentRequest {
+  professionalId: number;
+  serviceId: number;
+  dateTime: string;
+  patientId?: number;
+  guestPatient?: GuestPatientRequest;
+}
+
+export interface PatientSearchResult {
+  id: number;
+  fullName: string;
+  email: string | null;
+  phone: string;
+  registered: boolean;
+}
+
 export interface AvailableSlot {
   startTime: string;
   endTime: string;

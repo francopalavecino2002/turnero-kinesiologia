@@ -5,6 +5,10 @@
     } @else {
       <span class="day-agenda__label day-agenda__label--today">{{ dayLabel() }} — Hoy</span>
     }
+    <button mat-stroked-button color="primary" (click)="openBookAppointmentDialog()">
+      <mat-icon>add</mat-icon>
+      Agendar turno
+    </button>
   </div>
 
   @if (loading()) {

@@ -1,0 +1,58 @@
+.book-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: min(480px, 90vw);
+}
+
+.book-dialog__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.book-dialog__section-title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--eqi-ink, #143034);
+}
+
+.book-dialog__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.book-dialog__hint {
+  margin: 0;
+  color: var(--eqi-ink-soft, #555);
+  font-size: 0.85rem;
+}
+
+.book-dialog__error {
+  margin: 0;
+  color: #b3261e;
+  font-size: 0.85rem;
+}
+
+.book-dialog__date-field,
+.book-dialog__patient-field {
+  width: 100%;
+}
+
+.book-dialog__selected-patient {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: var(--eqi-neutral-light, #eaeaea);
+}
+
+.book-dialog__guest-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
