@@ -280,11 +280,8 @@ Each professional is associated with one or more services, and their availabilit
 | `ADMIN_PASSWORD` | Yes (prod) | Uses seeded user's password (dev profile only) | Password for the bootstrapped admin account |
 | `JWT_SECRET` | No | `dev-only-insecure-secret-do-not-use-in-production-min-32-bytes` | Secret key for JWT signing (minimum 32 bytes) |
 | `CORS_ALLOWED_ORIGINS` | No | `http://localhost:4200` | Comma-separated allowed origins for CORS |
-| `MAIL_HOST` | Yes (SMTP) | _(blank — emails are skipped and logged)_ | SMTP host used to send transactional emails |
-| `MAIL_PORT` | No | `587` | SMTP port |
-| `MAIL_USERNAME` | Yes (SMTP) | _(blank)_ | SMTP username |
-| `MAIL_PASSWORD` | Yes (SMTP) | _(blank)_ | SMTP password |
-| `MAIL_FROM_ADDRESS` | Yes (SMTP) | _(falls back to `MAIL_USERNAME`)_ | "From" address of the emails |
+| `BREVO_API_KEY` | Yes (prod) | _(blank — emails are skipped and logged)_ | API key for Brevo's transactional email REST API |
+| `MAIL_FROM_ADDRESS` | Yes (prod) | _(blank)_ | "From" address of the emails |
 | `MAIL_FROM_NAME` | No | `eQi – Especialidades Kinésicas` | Display name shown as the sender |
 | `APP_BASE_URL` | Yes | `http://localhost:4200` | Public URL of the frontend; used to build the verification/reset links inside emails |
 | `EMAIL_VERIFICATION_TOKEN_TTL` | No | `PT24H` | Lifetime of email-verification links (ISO-8601 duration) |
@@ -293,7 +290,9 @@ Each professional is associated with one or more services, and their availabilit
 
 Outside the `dev` profile, the application **refuses to start** if `ADMIN_EMAIL` or `ADMIN_PASSWORD` are not set. This is a deliberate security decision — it prevents deploying to production with a missing or default admin account.
 
-If `MAIL_HOST` is blank (the default), the backend never contacts an SMTP server: `SmtpEmailSender` logs the email and skips it. This lets local dev run without mail configuration, but **transactional emails only actually send when `MAIL_*` is configured**.
+If `BREVO_API_KEY` is blank (the default), the backend never calls the Brevo API: `BrevoApiEmailSender` logs the email and skips it. This lets local dev run without mail configuration, but **transactional emails only actually send when `BREVO_API_KEY` and `MAIL_FROM_ADDRESS` are configured**.
+
+Emails are sent via Brevo's HTTP REST API (`https://api.brevo.com/v3/smtp/email`) rather than SMTP, because Render's free tier blocks outbound traffic on the SMTP ports (25/465/587) since September 2025 — the REST API runs over HTTPS/443, which is not blocked.
 
 ---
 

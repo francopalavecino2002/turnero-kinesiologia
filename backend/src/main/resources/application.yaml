@@ -19,28 +19,6 @@ spring:
   flyway:
     enabled: true
 
-  # Transactional email (SMTP). All values come from environment variables: blank defaults
-  # mean "not configured" for local dev, where SmtpEmailSender logs and skips instead of
-  # failing. In production every MAIL_* var is required (see README env-var table).
-  mail:
-    host: ${MAIL_HOST:}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-          # Bounded SMTP timeouts: a send runs on a dedicated async thread, and without these a
-          # stalled mail server would block that thread indefinitely (invisible, since failures
-          # never propagate). 10s to open the connection, 15s to read server responses, 10s to
-          # write the message body.
-          connectiontimeout: 10000
-          timeout: 15000
-          writetimeout: 10000
-
 clinic:
   max-concurrent-appointments: 2
   min-cancellation-hours: 24
@@ -56,6 +34,11 @@ app:
     google:
       enabled: ${GOOGLE_OAUTH_ENABLED:false}
   mail:
+    # Transactional email via Brevo's HTTP REST API (BrevoApiEmailSender), not SMTP: Render's
+    # free tier blocks outbound SMTP ports (25/465/587) since September 2025, but not HTTPS/443.
+    # Blank BREVO_API_KEY means "not configured" for local dev, where the sender logs and skips
+    # instead of failing. In production it's required (see README env-var table).
+    brevo-api-key: ${BREVO_API_KEY:}
     from-address: ${MAIL_FROM_ADDRESS:}
     from-name: ${MAIL_FROM_NAME:eQi – Especialidades Kinésicas}
   tokens:
