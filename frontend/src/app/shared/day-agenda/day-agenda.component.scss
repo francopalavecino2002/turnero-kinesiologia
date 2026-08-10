@@ -6,6 +6,11 @@
 
 .day-agenda__header {
   padding: 0.25rem 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .day-agenda__label {

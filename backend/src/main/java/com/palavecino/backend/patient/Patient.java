@@ -28,12 +28,23 @@ public class Patient {
     @Column(nullable = false)
     private String phone;
 
+    // Nullable: a guest patient (booked by staff, no account) has no linked user - identified
+    // instead by the guest* fields below. Enforced together by chk_patient_user_or_guest.
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    @JoinColumn(name = "user_id", unique = true)
     private User user;
 
     @Column(name = "notifications_enabled", nullable = false)
     private boolean notificationsEnabled;
+
+    @Column(name = "guest_name")
+    private String guestName;
+
+    @Column(name = "guest_phone")
+    private String guestPhone;
+
+    @Column(name = "guest_email")
+    private String guestEmail;
 
     protected Patient() {
     }
@@ -48,6 +59,37 @@ public class Patient {
         this.phone = phone;
         this.user = user;
         this.notificationsEnabled = notificationsEnabled;
+    }
+
+    /**
+     * Guest patient: booked by staff on behalf of someone with no account. Notifications default
+     * to enabled since there is no preference to opt out of - the only gate on the confirmation
+     * email is whether a guest email was actually provided (see {@link #getEmail()}).
+     */
+    public static Patient guest(String guestName, String guestPhone, String guestEmail) {
+        Patient patient = new Patient();
+        String[] nameParts = guestName.trim().split("\\s+", 2);
+        patient.firstName = nameParts[0];
+        patient.lastName = nameParts.length > 1 ? nameParts[1] : "";
+        patient.phone = guestPhone;
+        patient.notificationsEnabled = true;
+        patient.guestName = guestName;
+        patient.guestPhone = guestPhone;
+        patient.guestEmail = guestEmail;
+        return patient;
+    }
+
+    /**
+     * Resolves the address to notify this patient at, regardless of whether they're registered
+     * (email lives on their account) or a guest (email, if any, lives on this row). Centralizes
+     * the null-check that every appointment-email call site would otherwise have to repeat.
+     */
+    public String getEmail() {
+        return user != null ? user.getEmail() : guestEmail;
+    }
+
+    public boolean isGuest() {
+        return user == null;
     }
 
     public Long getId() {
@@ -92,5 +134,17 @@ public class Patient {
 
     public void setNotificationsEnabled(boolean notificationsEnabled) {
         this.notificationsEnabled = notificationsEnabled;
+    }
+
+    public String getGuestName() {
+        return guestName;
+    }
+
+    public String getGuestPhone() {
+        return guestPhone;
+    }
+
+    public String getGuestEmail() {
+        return guestEmail;
     }
 }

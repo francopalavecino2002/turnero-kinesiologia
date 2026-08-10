@@ -8,6 +8,7 @@ import {
   CreateAppointmentRequest,
   AvailableSlot,
   MonthSummaryResponse,
+  StaffBookAppointmentRequest,
 } from '../models';
 
 @Injectable({ providedIn: 'root' })
@@ -17,6 +18,10 @@ export class AppointmentService {
 
   create(request: CreateAppointmentRequest): Observable<AppointmentResponse> {
     return this.http.post<AppointmentResponse>(this.apiUrl, request);
+  }
+
+  staffBook(request: StaffBookAppointmentRequest): Observable<AppointmentResponse> {
+    return this.http.post<AppointmentResponse>(`${this.apiUrl}/staff-book`, request);
   }
 
   getById(id: number): Observable<AppointmentResponse> {

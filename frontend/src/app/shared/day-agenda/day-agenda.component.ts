@@ -15,6 +15,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AppointmentService } from '../../core/services/appointment.service';
 import { AgendaEntry, AppointmentStatus } from '../../core/models';
+import { BookAppointmentDialogComponent } from './book-appointment-dialog.component';
 
 const DAY_NAMES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const MONTH_NAMES = [
@@ -164,6 +165,21 @@ export class DayAgendaComponent {
 
   formatTimeRange(start: string, end: string): string {
     return formatTimeRange(start, end);
+  }
+
+  openBookAppointmentDialog(): void {
+    const dialogRef = this.dialog.open(BookAppointmentDialogComponent, {
+      width: '560px',
+      maxWidth: '95vw',
+    });
+
+    dialogRef.afterClosed().subscribe((booked) => {
+      if (booked) {
+        this.snackBar.open('Turno agendado', undefined, { duration: 3000 });
+        this.loadAgendaFor(this.date());
+        this.actionPerformed.emit();
+      }
+    });
   }
 
   statusLabel(status: AppointmentStatus): string {

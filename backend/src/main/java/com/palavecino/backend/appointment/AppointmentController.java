@@ -5,6 +5,7 @@ import com.palavecino.backend.appointment.dto.AppointmentResponse;
 import com.palavecino.backend.appointment.dto.AvailableSlotResponse;
 import com.palavecino.backend.appointment.dto.CreateAppointmentRequest;
 import com.palavecino.backend.appointment.dto.MonthSummaryResponse;
+import com.palavecino.backend.appointment.dto.StaffBookAppointmentRequest;
 import com.palavecino.backend.security.AuthenticatedUserResolver;
 import jakarta.validation.Valid;
 import java.net.URI;
@@ -45,6 +46,15 @@ public class AppointmentController {
     public ResponseEntity<AppointmentResponse> bookAppointment(@Valid @RequestBody CreateAppointmentRequest request,
                                                                  Authentication authentication) {
         AppointmentResponse response = appointmentService.bookAppointment(
+                request, authenticatedUserResolver.resolve(authentication));
+        return ResponseEntity.created(URI.create("/api/appointments/" + response.id())).body(response);
+    }
+
+    @PostMapping("/staff-book")
+    @PreAuthorize("hasAnyRole('PROFESSIONAL', 'ADMIN')")
+    public ResponseEntity<AppointmentResponse> staffBookAppointment(@Valid @RequestBody StaffBookAppointmentRequest request,
+                                                                      Authentication authentication) {
+        AppointmentResponse response = appointmentService.staffBookAppointment(
                 request, authenticatedUserResolver.resolve(authentication));
         return ResponseEntity.created(URI.create("/api/appointments/" + response.id())).body(response);
     }

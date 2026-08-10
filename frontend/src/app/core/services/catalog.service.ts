@@ -19,4 +19,10 @@ export class CatalogService {
   getProfessionalsForService(serviceId: number): Observable<Professional[]> {
     return this.http.get<Professional[]>(`${environment.apiUrl}/services/${serviceId}/professionals`);
   }
+
+  // Resolves the logged-in professional's own record (id, offered services) - used by the manual
+  // booking dialog so a PROFESSIONAL implicitly books on their own agenda.
+  getMyProfessionalProfile(): Observable<Professional> {
+    return this.http.get<Professional>(`${environment.apiUrl}/professionals/me`);
+  }
 }

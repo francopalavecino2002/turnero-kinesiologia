@@ -1,0 +1,177 @@
+<h2 mat-dialog-title>Agendar turno</h2>
+
+<mat-dialog-content class="book-dialog">
+  <section class="book-dialog__section">
+    <h3 class="book-dialog__section-title">Servicio</h3>
+    @if (loadingServices()) {
+      <mat-spinner diameter="28" />
+    } @else {
+      <div class="book-dialog__options">
+        @for (service of services(); track service.id) {
+          <button
+            type="button"
+            mat-stroked-button
+            [color]="selectedService()?.id === service.id ? 'primary' : undefined"
+            (click)="selectService(service)"
+          >
+            {{ service.name }}
+          </button>
+        }
+      </div>
+    }
+  </section>
+
+  @if (selectedService() && isAdmin()) {
+    <section class="book-dialog__section">
+      <h3 class="book-dialog__section-title">Profesional</h3>
+      @if (loadingProfessionals()) {
+        <mat-spinner diameter="28" />
+      } @else if (professionals().length === 0) {
+        <p class="book-dialog__hint">Ningún profesional ofrece este servicio.</p>
+      } @else {
+        <div class="book-dialog__options">
+          @for (professional of professionals(); track professional.id) {
+            <button
+              type="button"
+              mat-stroked-button
+              [color]="selectedProfessional()?.id === professional.id ? 'primary' : undefined"
+              (click)="selectProfessional(professional)"
+            >
+              {{ professional.firstName }} {{ professional.lastName }}
+            </button>
+          }
+        </div>
+      }
+    </section>
+  }
+
+  @if (selectedService() && !isAdmin()) {
+    <section class="book-dialog__section">
+      <h3 class="book-dialog__section-title">Profesional</h3>
+      @if (myProfessional(); as me) {
+        <p class="book-dialog__hint">{{ me.firstName }} {{ me.lastName }} (vos)</p>
+        @if (!professionalOffersSelectedService()) {
+          <p class="book-dialog__error">No ofrecés el servicio seleccionado.</p>
+        }
+      }
+    </section>
+  }
+
+  @if (selectedProfessional() && professionalOffersSelectedService()) {
+    <section class="book-dialog__section">
+      <h3 class="book-dialog__section-title">Fecha</h3>
+      <mat-form-field appearance="outline" class="book-dialog__date-field">
+        <input
+          matInput
+          [matDatepicker]="picker"
+          [min]="minDate"
+          [value]="dateControl.value"
+          (dateChange)="onDateSelected($event.value)"
+          readonly
+        />
+        <mat-datepicker-toggle matIconSuffix [for]="picker" />
+        <mat-datepicker #picker />
+      </mat-form-field>
+    </section>
+
+    <section class="book-dialog__section">
+      <h3 class="book-dialog__section-title">Horario</h3>
+      @if (loadingSlots()) {
+        <mat-spinner diameter="28" />
+      } @else if (slots().length === 0) {
+        <p class="book-dialog__hint">No hay horarios disponibles para esta fecha.</p>
+      } @else {
+        <mat-chip-listbox aria-label="Horarios disponibles">
+          @for (slot of slots(); track slot.startTime) {
+            <mat-chip-option
+              [selected]="selectedSlot()?.startTime === slot.startTime"
+              (click)="selectSlot(slot)"
+            >
+              {{ slot.startTime | slice: 11 : 16 }}
+            </mat-chip-option>
+          }
+        </mat-chip-listbox>
+      }
+    </section>
+  }
+
+  @if (selectedSlot()) {
+    <section class="book-dialog__section">
+      <h3 class="book-dialog__section-title">Paciente</h3>
+      <mat-button-toggle-group
+        [value]="patientMode()"
+        (change)="setPatientMode($event.value)"
+        aria-label="Tipo de paciente"
+      >
+        <mat-button-toggle value="registered">Paciente registrado</mat-button-toggle>
+        <mat-button-toggle value="guest">Paciente nuevo</mat-button-toggle>
+      </mat-button-toggle-group>
+
+      @if (patientMode() === 'registered') {
+        @if (selectedPatient(); as patient) {
+          <div class="book-dialog__selected-patient">
+            <span>{{ patient.fullName }} <em>({{ patient.registered ? 'registrado' : 'invitado' }})</em></span>
+            <button type="button" mat-icon-button (click)="clearSelectedPatient()" aria-label="Quitar paciente">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        } @else {
+          <mat-form-field appearance="outline" class="book-dialog__patient-field">
+            <mat-label>Buscar por nombre o email</mat-label>
+            <input
+              matInput
+              [formControl]="patientSearchControl"
+              [matAutocomplete]="patientAuto"
+            />
+            @if (searchingPatients()) {
+              <mat-spinner matSuffix diameter="18" />
+            }
+          </mat-form-field>
+          <mat-autocomplete #patientAuto="matAutocomplete">
+            @for (patient of patientResults(); track patient.id) {
+              <mat-option (onSelectionChange)="selectPatient(patient)">
+                {{ patient.fullName }} — {{ patient.email ?? patient.phone }}
+              </mat-option>
+            }
+          </mat-autocomplete>
+        }
+      } @else {
+        <form [formGroup]="guestForm" class="book-dialog__guest-form">
+          <mat-form-field appearance="outline">
+            <mat-label>Nombre completo</mat-label>
+            <input matInput formControlName="name" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Teléfono</mat-label>
+            <input matInput formControlName="phone" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Email (opcional)</mat-label>
+            <input matInput type="email" formControlName="email" />
+          </mat-form-field>
+        </form>
+      }
+    </section>
+  }
+
+  @if (errorMessage(); as message) {
+    <p class="book-dialog__error">{{ message }}</p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button type="button" mat-button (click)="close()">Cancelar</button>
+  <button
+    type="button"
+    mat-flat-button
+    color="primary"
+    [disabled]="!canSubmit() || submitting()"
+    (click)="submit()"
+  >
+    @if (submitting()) {
+      <mat-spinner diameter="18" />
+    } @else {
+      Agendar turno
+    }
+  </button>
+</mat-dialog-actions>
