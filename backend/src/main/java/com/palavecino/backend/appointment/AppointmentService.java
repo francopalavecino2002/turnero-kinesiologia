@@ -389,24 +389,73 @@ public class AppointmentService {
 
     @Transactional
     public AppointmentResponse confirm(Long id, AuthenticatedUser currentUser) {
-        return transitionAsStaff(id, currentUser, AppointmentStatus.CONFIRMED);
+        Appointment appointment = transitionAsStaff(id, currentUser, AppointmentStatus.CONFIRMED);
+
+        if (appointment.getPatient().isNotificationsEnabled()) {
+            emailService.sendAppointmentConfirmedEmail(
+                    appointment.getPatient().getUser().getEmail(),
+                    appointment.getPatient().getFirstName(),
+                    appointment.getProfessional().getFirstName() + " " + appointment.getProfessional().getLastName(),
+                    appointment.getService().getName(),
+                    appointment.getDateTime(),
+                    appointment.getDurationMinutes());
+        } else {
+            log.info("[mail:appointment-confirmed] notifications disabled for patient {}; "
+                    + "skipping confirmation email", EmailMask.mask(appointment.getPatient().getUser().getEmail()));
+        }
+
+        return AppointmentMapper.toResponse(appointment);
     }
 
     @Transactional
     public AppointmentResponse complete(Long id, AuthenticatedUser currentUser) {
-        return transitionAsStaff(id, currentUser, AppointmentStatus.COMPLETED);
+        Appointment appointment = transitionAsStaff(id, currentUser, AppointmentStatus.COMPLETED);
+
+        // Same self-notification skip as cancellation: a professional who completes their own
+        // appointment doesn't need an email telling them about it.
+        boolean completedByTheProfessionalItself = currentUser.professionalId() != null
+                && appointment.getProfessional().getId().equals(currentUser.professionalId());
+        if (completedByTheProfessionalItself) {
+            log.info("[mail:appointment-completed-professional] skipped: professional {} completed "
+                    + "their own appointment", EmailMask.mask(appointment.getProfessional().getUser().getEmail()));
+        } else {
+            emailService.sendAppointmentCompletedToProfessionalEmail(
+                    appointment.getProfessional().getUser().getEmail(),
+                    appointment.getProfessional().getFirstName(),
+                    appointment.getPatient().getFirstName() + " " + appointment.getPatient().getLastName(),
+                    appointment.getService().getName(),
+                    appointment.getDateTime(),
+                    appointment.getDurationMinutes());
+        }
+
+        return AppointmentMapper.toResponse(appointment);
     }
 
     @Transactional
     public AppointmentResponse noShow(Long id, AuthenticatedUser currentUser) {
-        return transitionAsStaff(id, currentUser, AppointmentStatus.NO_SHOW);
+        Appointment appointment = transitionAsStaff(id, currentUser, AppointmentStatus.NO_SHOW);
+
+        if (appointment.getPatient().isNotificationsEnabled()) {
+            emailService.sendAppointmentNoShowEmail(
+                    appointment.getPatient().getUser().getEmail(),
+                    appointment.getPatient().getFirstName(),
+                    appointment.getProfessional().getFirstName() + " " + appointment.getProfessional().getLastName(),
+                    appointment.getService().getName(),
+                    appointment.getDateTime(),
+                    appointment.getDurationMinutes());
+        } else {
+            log.info("[mail:appointment-no-show] notifications disabled for patient {}; "
+                    + "skipping no-show email", EmailMask.mask(appointment.getPatient().getUser().getEmail()));
+        }
+
+        return AppointmentMapper.toResponse(appointment);
     }
 
-    private AppointmentResponse transitionAsStaff(Long id, AuthenticatedUser currentUser, AppointmentStatus target) {
+    private Appointment transitionAsStaff(Long id, AuthenticatedUser currentUser, AppointmentStatus target) {
         Appointment appointment = findOwnedForTransition(id, currentUser);
         ensureTransitionAllowed(appointment, target);
         appointment.setStatus(target);
-        return AppointmentMapper.toResponse(appointment);
+        return appointment;
     }
 
     private void ensureTransitionAllowed(Appointment appointment, AppointmentStatus target) {
