@@ -121,6 +121,59 @@ public class EmailService {
     }
 
     @Async("mailTaskExecutor")
+    public void sendAppointmentConfirmedEmail(String to, String patientFirstName, String professionalName,
+                                              String serviceName, LocalDateTime dateTime, int durationMinutes) {
+        try {
+            Context context = new Context();
+            context.setVariable("patientFirstName", patientFirstName);
+            context.setVariable("professionalName", professionalName);
+            context.setVariable("serviceName", serviceName);
+            context.setVariable("appointmentDateTime", formatAppointmentDateTime(dateTime));
+            context.setVariable("durationMinutes", durationMinutes);
+            context.setVariable("clinicAddress", CLINIC_ADDRESS);
+            String html = templateEngine.process("email/appointment-confirmed", context);
+            emailSender.sendEmail("appointment-confirmed", to, "Turno confirmado – eQi", html);
+        } catch (Exception e) {
+            log.error("[mail:appointment-confirmed] failed to prepare/send to {}", EmailMask.mask(to), e);
+        }
+    }
+
+    @Async("mailTaskExecutor")
+    public void sendAppointmentNoShowEmail(String to, String patientFirstName, String professionalName,
+                                           String serviceName, LocalDateTime dateTime, int durationMinutes) {
+        try {
+            Context context = new Context();
+            context.setVariable("patientFirstName", patientFirstName);
+            context.setVariable("professionalName", professionalName);
+            context.setVariable("serviceName", serviceName);
+            context.setVariable("appointmentDateTime", formatAppointmentDateTime(dateTime));
+            context.setVariable("durationMinutes", durationMinutes);
+            context.setVariable("clinicAddress", CLINIC_ADDRESS);
+            String html = templateEngine.process("email/appointment-no-show", context);
+            emailSender.sendEmail("appointment-no-show", to, "Turno no asistido – eQi", html);
+        } catch (Exception e) {
+            log.error("[mail:appointment-no-show] failed to prepare/send to {}", EmailMask.mask(to), e);
+        }
+    }
+
+    @Async("mailTaskExecutor")
+    public void sendAppointmentCompletedToProfessionalEmail(String to, String professionalFirstName, String patientName,
+                                                             String serviceName, LocalDateTime dateTime, int durationMinutes) {
+        try {
+            Context context = new Context();
+            context.setVariable("professionalFirstName", professionalFirstName);
+            context.setVariable("patientName", patientName);
+            context.setVariable("serviceName", serviceName);
+            context.setVariable("appointmentDateTime", formatAppointmentDateTime(dateTime));
+            context.setVariable("durationMinutes", durationMinutes);
+            String html = templateEngine.process("email/appointment-completed-professional", context);
+            emailSender.sendEmail("appointment-completed-professional", to, "Turno completado – eQi", html);
+        } catch (Exception e) {
+            log.error("[mail:appointment-completed-professional] failed to prepare/send to {}", EmailMask.mask(to), e);
+        }
+    }
+
+    @Async("mailTaskExecutor")
     public void sendAppointmentBookedToProfessionalEmail(String to, String professionalFirstName, String patientName,
                                                          String serviceName, LocalDateTime dateTime, int durationMinutes) {
         try {

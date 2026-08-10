@@ -260,4 +260,98 @@ class AppointmentEmailNotificationIntegrationTest {
                 .contains("Maria Lopez")
                 .contains("General");
     }
+
+    @Test
+    void confirmingAppointmentSendsConfirmationEmailToPatient() throws Exception {
+        LocalDateTime dateTime = LocalDateTime.now().plusHours(48);
+        Appointment appointment = createAppointment(AppointmentStatus.BOOKED, dateTime);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments/" + appointment.getId() + "/confirm")
+                        .header("Authorization", "Bearer " + jwtService.generateToken(professional.getUser())))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        assertThat(emailSender.count()).isEqualTo(1);
+        FakeEmailSender.CapturedEmail mail = emailSender.all().get(0);
+        assertThat(mail.to()).isEqualTo(patientUser.getEmail());
+        assertThat(mail.subject()).contains("Turno confirmado");
+        assertThat(mail.htmlBody())
+                .contains("Ana Gomez")
+                .contains("General")
+                .contains("Amancay 450");
+    }
+
+    @Test
+    void confirmingAppointmentRespectsNotificationsDisabled() throws Exception {
+        User optedOutUser = userRepository.save(new User(unique("optout") + "@example.com", "hash", Role.PATIENT, true));
+        Patient optedOutPatient = patientRepository.save(new Patient("Rosa", "Mendez", "222222", optedOutUser, false));
+        LocalDateTime dateTime = LocalDateTime.now().plusHours(48);
+        Appointment appointment = appointmentRepository.save(new Appointment(optedOutPatient, professional, generalService,
+                dateTime, AppointmentStatus.BOOKED, generalService.getDurationMinutes()));
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments/" + appointment.getId() + "/confirm")
+                        .header("Authorization", "Bearer " + jwtService.generateToken(professional.getUser())))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        assertThat(emailSender.count()).isEqualTo(0);
+    }
+
+    @Test
+    void markingNoShowSendsEmailToPatient() throws Exception {
+        LocalDateTime dateTime = LocalDateTime.now().plusHours(48);
+        Appointment appointment = createAppointment(AppointmentStatus.BOOKED, dateTime);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments/" + appointment.getId() + "/no-show")
+                        .header("Authorization", "Bearer " + jwtService.generateToken(professional.getUser())))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        assertThat(emailSender.count()).isEqualTo(1);
+        FakeEmailSender.CapturedEmail mail = emailSender.all().get(0);
+        assertThat(mail.to()).isEqualTo(patientUser.getEmail());
+        assertThat(mail.subject()).contains("Turno no asistido");
+        assertThat(mail.htmlBody()).contains("Ana Gomez");
+    }
+
+    @Test
+    void markingNoShowRespectsNotificationsDisabled() throws Exception {
+        User optedOutUser = userRepository.save(new User(unique("optout") + "@example.com", "hash", Role.PATIENT, true));
+        Patient optedOutPatient = patientRepository.save(new Patient("Rosa", "Mendez", "222222", optedOutUser, false));
+        LocalDateTime dateTime = LocalDateTime.now().plusHours(48);
+        Appointment appointment = appointmentRepository.save(new Appointment(optedOutPatient, professional, generalService,
+                dateTime, AppointmentStatus.BOOKED, generalService.getDurationMinutes()));
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments/" + appointment.getId() + "/no-show")
+                        .header("Authorization", "Bearer " + jwtService.generateToken(professional.getUser())))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        assertThat(emailSender.count()).isEqualTo(0);
+    }
+
+    @Test
+    void completingAppointmentByAdminNotifiesProfessional() throws Exception {
+        User adminUser = userRepository.save(new User(unique("admin") + "@example.com", "hash", Role.ADMIN, true));
+        LocalDateTime dateTime = LocalDateTime.now().plusHours(48);
+        Appointment appointment = createAppointment(AppointmentStatus.CONFIRMED, dateTime);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments/" + appointment.getId() + "/complete")
+                        .header("Authorization", "Bearer " + jwtService.generateToken(adminUser)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        assertThat(emailSender.count()).isEqualTo(1);
+        FakeEmailSender.CapturedEmail mail = emailSender.all().get(0);
+        assertThat(mail.to()).isEqualTo(professional.getUser().getEmail());
+        assertThat(mail.subject()).contains("Turno completado");
+        assertThat(mail.htmlBody()).contains("Maria Lopez");
+    }
+
+    @Test
+    void completingAppointmentByTheProfessionalItselfDoesNotSelfNotify() throws Exception {
+        LocalDateTime dateTime = LocalDateTime.now().plusHours(48);
+        Appointment appointment = createAppointment(AppointmentStatus.CONFIRMED, dateTime);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/appointments/" + appointment.getId() + "/complete")
+                        .header("Authorization", "Bearer " + jwtService.generateToken(professional.getUser())))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        assertThat(emailSender.count()).isEqualTo(0);
+    }
 }
