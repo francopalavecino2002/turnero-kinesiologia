@@ -1,6 +1,9 @@
 <h2 mat-dialog-title>Agendar turno</h2>
 
 <mat-dialog-content class="book-dialog">
+  @if (fatalError(); as fatal) {
+    <p class="book-dialog__error" role="alert">{{ fatal }}</p>
+  } @else {
   <section class="book-dialog__section">
     <h3 class="book-dialog__section-title">Servicio</h3>
     @if (loadingServices()) {
@@ -157,10 +160,12 @@
   @if (errorMessage(); as message) {
     <p class="book-dialog__error">{{ message }}</p>
   }
+  }
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
   <button type="button" mat-button (click)="close()">Cancelar</button>
+  @if (!fatalError()) {
   <button
     type="button"
     mat-flat-button
@@ -174,4 +179,5 @@
       Agendar turno
     }
   </button>
+  }
 </mat-dialog-actions>

@@ -118,6 +118,10 @@ export class BookAppointmentDialogComponent {
   readonly submitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
 
+  // Set when a step's data fails to load in a way that leaves the form unusable
+  // (e.g. the caller's own professional profile). Gates the rest of the form.
+  readonly fatalError = signal<string | null>(null);
+
   readonly canSubmit = computed(() => {
     if (!this.selectedService() || !this.selectedProfessional() || !this.selectedSlot()) {
       return false;
@@ -139,6 +143,12 @@ export class BookAppointmentDialogComponent {
         next: (professional) => {
           this.myProfessional.set(professional);
           this.selectedProfessional.set(professional);
+        },
+        error: (err) => {
+          console.error('No se pudo cargar el perfil profesional del usuario actual', err);
+          this.fatalError.set(
+            'No pudimos cargar tu perfil profesional. Si sos administrador sin perfil vinculado, contactá al desarrollador.',
+          );
         },
       });
     }
@@ -163,9 +173,11 @@ export class BookAppointmentDialogComponent {
           this.patientResults.set(results);
           this.searchingPatients.set(false);
         },
-        error: () => {
+        error: (err) => {
+          console.error('No se pudieron buscar pacientes', err);
           this.patientResults.set([]);
           this.searchingPatients.set(false);
+          this.errorMessage.set('No pudimos buscar pacientes. Probá de nuevo.');
         },
       });
   }
@@ -177,7 +189,11 @@ export class BookAppointmentDialogComponent {
         this.services.set(services);
         this.loadingServices.set(false);
       },
-      error: () => this.loadingServices.set(false),
+      error: (err) => {
+        console.error('No se pudieron cargar los servicios', err);
+        this.loadingServices.set(false);
+        this.fatalError.set('No pudimos cargar los servicios disponibles. Intentá nuevamente más tarde.');
+      },
     });
   }
 
@@ -194,7 +210,11 @@ export class BookAppointmentDialogComponent {
           this.professionals.set(matches);
           this.loadingProfessionals.set(false);
         },
-        error: () => this.loadingProfessionals.set(false),
+        error: (err) => {
+          console.error('No se pudieron cargar los profesionales para el servicio seleccionado', err);
+          this.loadingProfessionals.set(false);
+          this.errorMessage.set('No pudimos cargar los profesionales para este servicio. Probá de nuevo.');
+        },
       });
     } else if (this.professionalOffersSelectedService()) {
       this.fetchSlots();
@@ -235,7 +255,11 @@ export class BookAppointmentDialogComponent {
         this.slots.set(slots);
         this.loadingSlots.set(false);
       },
-      error: () => this.loadingSlots.set(false),
+      error: (err) => {
+        console.error('No se pudieron cargar los horarios disponibles', err);
+        this.loadingSlots.set(false);
+        this.errorMessage.set('No pudimos cargar los horarios disponibles. Probá de nuevo.');
+      },
     });
   }
 
