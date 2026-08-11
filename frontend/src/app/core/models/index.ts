@@ -112,11 +112,19 @@ export interface Service {
   active: boolean;
 }
 
+// Bare service info as returned nested inside ProfessionalResponse (no `active` flag - the
+// backend only nests services this way for a professional's own offered-services list).
+export interface ServiceSummary {
+  id: number;
+  name: string;
+  durationMinutes: number;
+}
+
 export interface Professional {
   id: number;
   firstName: string;
   lastName: string;
-  services: Service[];
+  services: ServiceSummary[];
 }
 
 export interface Patient {

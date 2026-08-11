@@ -5,11 +5,17 @@
     } @else {
       <span class="day-agenda__label day-agenda__label--today">{{ dayLabel() }} — Hoy</span>
     }
-    <button mat-stroked-button color="primary" (click)="openBookAppointmentDialog()">
-      <mat-icon>add</mat-icon>
-      Agendar turno
-    </button>
+    @if (myProfessional()) {
+      <button mat-stroked-button color="primary" (click)="openBookAppointmentDialog()">
+        <mat-icon>add</mat-icon>
+        Agendar turno
+      </button>
+    }
   </div>
+
+  @if (myProfessionalUnavailableReason(); as reason) {
+    <p class="day-agenda__book-unavailable" role="alert">{{ reason }}</p>
+  }
 
   @if (loading()) {
     <div class="day-agenda__loading">

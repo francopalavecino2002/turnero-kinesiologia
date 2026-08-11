@@ -30,22 +30,26 @@ public class ProfessionalController {
     }
 
     /**
-     * Lets the frontend resolve "myself" for a logged-in professional without exposing
-     * professionalId in the JWT - e.g. the manual-booking dialog needs it to implicitly book on
-     * their own agenda without asking them to pick themselves from a list.
+     * Lets the frontend resolve "myself" for a logged-in professional (or an admin with a linked
+     * professional profile, see AdminProfessionalService.linkProfessionalToOwnAccount) without
+     * exposing professionalId in the JWT - e.g. the manual-booking dialog needs it to implicitly
+     * book on their own agenda without asking them to pick themselves from a list.
      */
     @GetMapping("/me")
-    @PreAuthorize("hasRole('PROFESSIONAL')")
+    @PreAuthorize("hasAnyRole('PROFESSIONAL', 'ADMIN')")
     public ResponseEntity<ProfessionalResponse> getMe(Authentication authentication) {
         Long professionalId = authenticatedUserResolver.resolve(authentication).professionalId();
-        Professional professional = professionalRepository.findById(professionalId)
+        if (professionalId == null) {
+            throw new ResourceNotFoundException("Current user has no linked professional profile");
+        }
+        Professional professional = professionalRepository.findByIdFetchingServices(professionalId)
                 .orElseThrow(() -> new ResourceNotFoundException("Professional record not found for current user"));
         return ResponseEntity.ok(ProfessionalMapper.toResponse(professional));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ProfessionalResponse> getById(@PathVariable Long id) {
-        Professional professional = professionalRepository.findById(id)
+        Professional professional = professionalRepository.findByIdFetchingServices(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Professional not found with id " + id));
         // A deactivated professional is invisible to the public: treat it like it doesn't exist
         // so patients never see (or end up choosing) a professional they can't actually book.

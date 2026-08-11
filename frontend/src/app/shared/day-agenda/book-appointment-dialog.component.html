@@ -1,46 +1,24 @@
 <h2 mat-dialog-title>Agendar turno</h2>
 
 <mat-dialog-content class="book-dialog">
-  @if (fatalError(); as fatal) {
-    <p class="book-dialog__error" role="alert">{{ fatal }}</p>
-  } @else {
-  <section class="book-dialog__section">
-    <h3 class="book-dialog__section-title">Servicio</h3>
-    @if (loadingServices()) {
-      <mat-spinner diameter="28" />
-    } @else {
-      <div class="book-dialog__options">
-        @for (service of services(); track service.id) {
-          <button
-            type="button"
-            mat-stroked-button
-            [color]="selectedService()?.id === service.id ? 'primary' : undefined"
-            (click)="selectService(service)"
-          >
-            {{ service.name }}
-          </button>
-        }
-      </div>
-    }
-  </section>
-
-  @if (selectedService() && isAdmin()) {
+  @if (!skipServiceStep) {
     <section class="book-dialog__section">
-      <h3 class="book-dialog__section-title">Profesional</h3>
-      @if (loadingProfessionals()) {
-        <mat-spinner diameter="28" />
-      } @else if (professionals().length === 0) {
-        <p class="book-dialog__hint">Ningún profesional ofrece este servicio.</p>
+      <h3 class="book-dialog__section-title">Servicio</h3>
+      @if (offeredServices.length === 0) {
+        <p class="book-dialog__error" role="alert">
+          No tenés servicios asignados. Contactá al administrador para que te asigne al menos uno
+          antes de cargar turnos.
+        </p>
       } @else {
         <div class="book-dialog__options">
-          @for (professional of professionals(); track professional.id) {
+          @for (service of offeredServices; track service.id) {
             <button
               type="button"
               mat-stroked-button
-              [color]="selectedProfessional()?.id === professional.id ? 'primary' : undefined"
-              (click)="selectProfessional(professional)"
+              [color]="selectedService()?.id === service.id ? 'primary' : undefined"
+              (click)="selectService(service)"
             >
-              {{ professional.firstName }} {{ professional.lastName }}
+              {{ service.name }}
             </button>
           }
         </div>
@@ -48,19 +26,7 @@
     </section>
   }
 
-  @if (selectedService() && !isAdmin()) {
-    <section class="book-dialog__section">
-      <h3 class="book-dialog__section-title">Profesional</h3>
-      @if (myProfessional(); as me) {
-        <p class="book-dialog__hint">{{ me.firstName }} {{ me.lastName }} (vos)</p>
-        @if (!professionalOffersSelectedService()) {
-          <p class="book-dialog__error">No ofrecés el servicio seleccionado.</p>
-        }
-      }
-    </section>
-  }
-
-  @if (selectedProfessional() && professionalOffersSelectedService()) {
+  @if (selectedService()) {
     <section class="book-dialog__section">
       <h3 class="book-dialog__section-title">Fecha</h3>
       <mat-form-field appearance="outline" class="book-dialog__date-field">
@@ -160,12 +126,10 @@
   @if (errorMessage(); as message) {
     <p class="book-dialog__error">{{ message }}</p>
   }
-  }
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
   <button type="button" mat-button (click)="close()">Cancelar</button>
-  @if (!fatalError()) {
   <button
     type="button"
     mat-flat-button
@@ -179,5 +143,4 @@
       Agendar turno
     }
   </button>
-  }
 </mat-dialog-actions>
