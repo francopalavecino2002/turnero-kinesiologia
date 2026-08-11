@@ -14,7 +14,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AppointmentService } from '../../core/services/appointment.service';
-import { AgendaEntry, AppointmentStatus } from '../../core/models';
+import { CatalogService } from '../../core/services/catalog.service';
+import { AgendaEntry, AppointmentStatus, Professional } from '../../core/models';
 import { BookAppointmentDialogComponent } from './book-appointment-dialog.component';
 
 const DAY_NAMES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -115,12 +116,20 @@ export class DayAgendaComponent {
   readonly actionPerformed = output<void>();
 
   private readonly appointmentService = inject(AppointmentService);
+  private readonly catalogService = inject(CatalogService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
 
   readonly entries = signal<AgendaEntry[]>([]);
   readonly loading = signal(true);
   readonly error = signal(false);
+
+  // Resolves "myself" as a professional so the manual-booking dialog can implicitly book on this
+  // agenda. A PROFESSIONAL always has one; an ADMIN only has one if they linked a professional
+  // profile to their account - if not, booking is unavailable and we explain why instead of
+  // opening a dialog that has no professional to book for.
+  readonly myProfessional = signal<Professional | null>(null);
+  readonly myProfessionalUnavailableReason = signal<string | null>(null);
 
   readonly isToday = computed(() => {
     const now = new Date();
@@ -140,6 +149,17 @@ export class DayAgendaComponent {
   readonly otherCount = computed(() => this.entries().filter(e => !e.ownedByCurrentUser).length);
 
   constructor() {
+    this.catalogService.getMyProfessionalProfile().subscribe({
+      next: (professional) => this.myProfessional.set(professional),
+      error: (err: { status?: number }) => {
+        this.myProfessionalUnavailableReason.set(
+          err?.status === 404
+            ? 'Tu usuario administrador no tiene un perfil profesional vinculado, así que no podés cargar turnos manualmente. Vinculá tu perfil profesional para habilitar esta acción.'
+            : 'No pudimos verificar tu perfil profesional. Recargá la página para reintentar.',
+        );
+      },
+    });
+
     effect(() => {
       const date = this.date();
       this.loadAgendaFor(date);
@@ -168,9 +188,15 @@ export class DayAgendaComponent {
   }
 
   openBookAppointmentDialog(): void {
+    const professional = this.myProfessional();
+    if (!professional) {
+      return;
+    }
+
     const dialogRef = this.dialog.open(BookAppointmentDialogComponent, {
       width: '560px',
       maxWidth: '95vw',
+      data: { professional },
     });
 
     dialogRef.afterClosed().subscribe((booked) => {

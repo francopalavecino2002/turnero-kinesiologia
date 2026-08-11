@@ -15,25 +15,27 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MAT_DATE_LOCALE, provideNativeDateAdapter } from '@angular/material/core';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { AuthService } from '../../core/services/auth.service';
-import { CatalogService } from '../../core/services/catalog.service';
 import { AppointmentService } from '../../core/services/appointment.service';
 import { PatientService } from '../../core/services/patient.service';
 import {
   AvailableSlot,
   PatientSearchResult,
   Professional,
-  Service,
+  ServiceSummary,
   StaffBookAppointmentRequest,
 } from '../../core/models';
 
 type PatientMode = 'registered' | 'guest';
+
+export interface BookAppointmentDialogData {
+  professional: Professional;
+}
 
 function toIsoDate(date: Date): string {
   const year = date.getFullYear();
@@ -65,38 +67,25 @@ function toIsoDate(date: Date): string {
 })
 export class BookAppointmentDialogComponent {
   private readonly dialogRef = inject(MatDialogRef<BookAppointmentDialogComponent>);
-  private readonly auth = inject(AuthService);
-  private readonly catalogService = inject(CatalogService);
+  private readonly data = inject<BookAppointmentDialogData>(MAT_DIALOG_DATA);
   private readonly appointmentService = inject(AppointmentService);
   private readonly patientService = inject(PatientService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly isAdmin = computed(() => this.auth.role() === 'ADMIN');
+  // The dialog always books on the current user's own agenda - DayAgendaComponent resolves this
+  // professional (and gates opening the dialog at all) before creating it.
+  readonly professional = this.data.professional;
+  readonly offeredServices = this.professional.services;
+  readonly skipServiceStep = this.offeredServices.length === 1;
 
   readonly today = new Date();
   readonly minDate = new Date(this.today.getFullYear(), this.today.getMonth(), this.today.getDate());
   readonly dateControl = this.fb.nonNullable.control<Date>(this.minDate);
 
-  readonly services = signal<Service[]>([]);
-  readonly loadingServices = signal(true);
-  readonly selectedService = signal<Service | null>(null);
-
-  // Only populated/relevant for ADMIN. For a PROFESSIONAL caller, myProfessional() is the only
-  // option and is never shown as a picker.
-  readonly professionals = signal<Professional[]>([]);
-  readonly loadingProfessionals = signal(false);
-  readonly myProfessional = signal<Professional | null>(null);
-  readonly selectedProfessional = signal<Professional | null>(null);
-
-  readonly professionalOffersSelectedService = computed(() => {
-    const service = this.selectedService();
-    const professional = this.selectedProfessional();
-    if (!service || !professional) {
-      return true;
-    }
-    return professional.services.some((s) => s.id === service.id);
-  });
+  readonly selectedService = signal<ServiceSummary | null>(
+    this.skipServiceStep ? this.offeredServices[0] : null,
+  );
 
   readonly slots = signal<AvailableSlot[]>([]);
   readonly loadingSlots = signal(false);
@@ -118,15 +107,8 @@ export class BookAppointmentDialogComponent {
   readonly submitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
 
-  // Set when a step's data fails to load in a way that leaves the form unusable
-  // (e.g. the caller's own professional profile). Gates the rest of the form.
-  readonly fatalError = signal<string | null>(null);
-
   readonly canSubmit = computed(() => {
-    if (!this.selectedService() || !this.selectedProfessional() || !this.selectedSlot()) {
-      return false;
-    }
-    if (!this.professionalOffersSelectedService()) {
+    if (!this.selectedService() || !this.selectedSlot()) {
       return false;
     }
     if (this.patientMode() === 'registered') {
@@ -136,21 +118,8 @@ export class BookAppointmentDialogComponent {
   });
 
   constructor() {
-    this.loadServices();
-
-    if (!this.isAdmin()) {
-      this.catalogService.getMyProfessionalProfile().subscribe({
-        next: (professional) => {
-          this.myProfessional.set(professional);
-          this.selectedProfessional.set(professional);
-        },
-        error: (err) => {
-          console.error('No se pudo cargar el perfil profesional del usuario actual', err);
-          this.fatalError.set(
-            'No pudimos cargar tu perfil profesional. Si sos administrador sin perfil vinculado, contactá al desarrollador.',
-          );
-        },
-      });
+    if (this.skipServiceStep) {
+      this.fetchSlots();
     }
 
     this.patientSearchControl.valueChanges
@@ -182,52 +151,11 @@ export class BookAppointmentDialogComponent {
       });
   }
 
-  private loadServices(): void {
-    this.loadingServices.set(true);
-    this.catalogService.getServices().subscribe({
-      next: (services) => {
-        this.services.set(services);
-        this.loadingServices.set(false);
-      },
-      error: (err) => {
-        console.error('No se pudieron cargar los servicios', err);
-        this.loadingServices.set(false);
-        this.fatalError.set('No pudimos cargar los servicios disponibles. Intentá nuevamente más tarde.');
-      },
-    });
-  }
-
-  selectService(service: Service): void {
+  selectService(service: ServiceSummary): void {
     this.selectedService.set(service);
     this.selectedSlot.set(null);
     this.slots.set([]);
-
-    if (this.isAdmin()) {
-      this.selectedProfessional.set(null);
-      this.loadingProfessionals.set(true);
-      this.catalogService.getProfessionalsForService(service.id).subscribe({
-        next: (matches) => {
-          this.professionals.set(matches);
-          this.loadingProfessionals.set(false);
-        },
-        error: (err) => {
-          console.error('No se pudieron cargar los profesionales para el servicio seleccionado', err);
-          this.loadingProfessionals.set(false);
-          this.errorMessage.set('No pudimos cargar los profesionales para este servicio. Probá de nuevo.');
-        },
-      });
-    } else if (this.professionalOffersSelectedService()) {
-      this.fetchSlots();
-    }
-  }
-
-  selectProfessional(professional: Professional): void {
-    this.selectedProfessional.set(professional);
-    this.selectedSlot.set(null);
-    this.slots.set([]);
-    if (this.professionalOffersSelectedService()) {
-      this.fetchSlots();
-    }
+    this.fetchSlots();
   }
 
   onDateSelected(date: Date | null): void {
@@ -240,9 +168,8 @@ export class BookAppointmentDialogComponent {
 
   private fetchSlots(): void {
     const service = this.selectedService();
-    const professional = this.selectedProfessional();
     const date = this.dateControl.value;
-    if (!service || !professional || !date || !this.professionalOffersSelectedService()) {
+    if (!service || !date) {
       return;
     }
 
@@ -250,7 +177,7 @@ export class BookAppointmentDialogComponent {
     this.slots.set([]);
     this.loadingSlots.set(true);
 
-    this.appointmentService.getAvailableSlots(professional.id, service.id, toIsoDate(date)).subscribe({
+    this.appointmentService.getAvailableSlots(this.professional.id, service.id, toIsoDate(date)).subscribe({
       next: (slots) => {
         this.slots.set(slots);
         this.loadingSlots.set(false);
@@ -291,15 +218,14 @@ export class BookAppointmentDialogComponent {
 
   submit(): void {
     const service = this.selectedService();
-    const professional = this.selectedProfessional();
     const slot = this.selectedSlot();
-    if (!service || !professional || !slot || !this.canSubmit()) {
+    if (!service || !slot || !this.canSubmit()) {
       return;
     }
 
     const request: StaffBookAppointmentRequest = {
       serviceId: service.id,
-      professionalId: professional.id,
+      professionalId: this.professional.id,
       dateTime: slot.startTime,
       ...(this.patientMode() === 'registered'
         ? { patientId: this.selectedPatient()!.id }

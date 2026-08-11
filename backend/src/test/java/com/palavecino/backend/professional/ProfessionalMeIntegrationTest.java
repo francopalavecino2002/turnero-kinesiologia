@@ -57,16 +57,38 @@ class ProfessionalMeIntegrationTest {
                         .header("Authorization", "Bearer " + jwtService.generateToken(professionalUser)))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(professional.getId()))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.firstName").value("Ana"));
+                .andExpect(MockMvcResultMatchers.jsonPath("$.firstName").value("Ana"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.services").isArray());
     }
 
     @Test
-    void returns403ForNonProfessionalCaller() throws Exception {
+    void returns403ForPatientCaller() throws Exception {
+        User patientUser = userRepository.save(new User(unique("patient") + "@example.com", "hash", Role.PATIENT, true));
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/professionals/me")
+                        .header("Authorization", "Bearer " + jwtService.generateToken(patientUser)))
+                .andExpect(MockMvcResultMatchers.status().isForbidden());
+    }
+
+    @Test
+    void returns404ForAdminWithoutLinkedProfessional() throws Exception {
         User adminUser = userRepository.save(new User(unique("admin") + "@example.com", "hash", Role.ADMIN, true));
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/professionals/me")
                         .header("Authorization", "Bearer " + jwtService.generateToken(adminUser)))
-                .andExpect(MockMvcResultMatchers.status().isForbidden());
+                .andExpect(MockMvcResultMatchers.status().isNotFound());
+    }
+
+    @Test
+    void returnsOwnProfessionalRecordForAdminWithLinkedProfessional() throws Exception {
+        User adminUser = userRepository.save(new User(unique("admin") + "@example.com", "hash", Role.ADMIN, true));
+        Professional professional = professionalRepository.save(new Professional("Beto", "Diaz", adminUser));
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/professionals/me")
+                        .header("Authorization", "Bearer " + jwtService.generateToken(adminUser)))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(professional.getId()))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.firstName").value("Beto"));
     }
 
     @Test
