@@ -6,10 +6,10 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { SlicePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { debounceTime, distinctUntilChanged, of, switchMap } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, map, of, switchMap } from 'rxjs';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
@@ -93,7 +93,7 @@ export class BookAppointmentDialogComponent {
 
   readonly patientMode = signal<PatientMode>('registered');
 
-  readonly patientSearchControl = this.fb.nonNullable.control('');
+  readonly patientSearchControl = this.fb.nonNullable.control<string | PatientSearchResult>('');
   readonly patientResults = signal<PatientSearchResult[]>([]);
   readonly searchingPatients = signal(false);
   readonly selectedPatient = signal<PatientSearchResult | null>(null);
@@ -103,6 +103,11 @@ export class BookAppointmentDialogComponent {
     phone: ['', Validators.required],
     email: [''],
   });
+
+  private readonly guestFormValid = toSignal(
+    this.guestForm.statusChanges.pipe(map(() => this.guestForm.valid)),
+    { initialValue: this.guestForm.valid },
+  );
 
   readonly submitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -114,7 +119,7 @@ export class BookAppointmentDialogComponent {
     if (this.patientMode() === 'registered') {
       return this.selectedPatient() !== null;
     }
-    return this.guestForm.valid;
+    return this.guestFormValid();
   });
 
   constructor() {
@@ -127,27 +132,31 @@ export class BookAppointmentDialogComponent {
         debounceTime(300),
         distinctUntilChanged(),
         switchMap((term) => {
+          if (typeof term !== 'string') {
+            // A patient was just selected: the control now holds the selected
+            // PatientSearchResult (see [displayWith]), not user-typed text.
+            this.searchingPatients.set(false);
+            return of([] as PatientSearchResult[]);
+          }
           const trimmed = term.trim();
           if (trimmed.length < 2) {
             this.searchingPatients.set(false);
             return of([] as PatientSearchResult[]);
           }
           this.searchingPatients.set(true);
-          return this.patientService.search(trimmed);
+          return this.patientService.search(trimmed).pipe(
+            catchError((err) => {
+              console.error('No se pudieron buscar pacientes', err);
+              this.errorMessage.set('No pudimos buscar pacientes. Probá de nuevo.');
+              return of([] as PatientSearchResult[]);
+            }),
+          );
         }),
         takeUntilDestroyed(this.destroyRef),
       )
-      .subscribe({
-        next: (results) => {
-          this.patientResults.set(results);
-          this.searchingPatients.set(false);
-        },
-        error: (err) => {
-          console.error('No se pudieron buscar pacientes', err);
-          this.patientResults.set([]);
-          this.searchingPatients.set(false);
-          this.errorMessage.set('No pudimos buscar pacientes. Probá de nuevo.');
-        },
+      .subscribe((results) => {
+        this.patientResults.set(results);
+        this.searchingPatients.set(false);
       });
   }
 
@@ -212,8 +221,11 @@ export class BookAppointmentDialogComponent {
     this.patientSearchControl.setValue('');
   }
 
-  displayPatient(patient: PatientSearchResult | null): string {
-    return patient ? patient.fullName : '';
+  displayPatient(patient: PatientSearchResult | string | null): string {
+    if (!patient) {
+      return '';
+    }
+    return typeof patient === 'string' ? patient : patient.fullName;
   }
 
   submit(): void {
