@@ -96,9 +96,9 @@
               <mat-spinner matSuffix diameter="18" />
             }
           </mat-form-field>
-          <mat-autocomplete #patientAuto="matAutocomplete">
+          <mat-autocomplete #patientAuto="matAutocomplete" [displayWith]="displayPatient">
             @for (patient of patientResults(); track patient.id) {
-              <mat-option (onSelectionChange)="selectPatient(patient)">
+              <mat-option [value]="patient" (onSelectionChange)="selectPatient(patient)">
                 {{ patient.fullName }} — {{ patient.email ?? patient.phone }}
               </mat-option>
             }

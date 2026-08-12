@@ -1,20 +1,28 @@
 import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { BookAppointmentDialogComponent } from './book-appointment-dialog.component';
 import { AppointmentService } from '../../core/services/appointment.service';
 import { PatientService } from '../../core/services/patient.service';
-import { Professional } from '../../core/models';
+import { PatientSearchResult, Professional } from '../../core/models';
+
+function waitForDebounce(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 320));
+}
 
 describe('BookAppointmentDialogComponent', () => {
-  async function createComponent(professional: Professional, getAvailableSlots = () => of([])) {
+  async function createComponent(
+    professional: Professional,
+    getAvailableSlots = () => of([]),
+    search: (term: string) => ReturnType<PatientService['search']> = () => of([]),
+  ) {
     await TestBed.configureTestingModule({
       imports: [BookAppointmentDialogComponent],
       providers: [
         { provide: MatDialogRef, useValue: { close: () => {} } },
         { provide: MAT_DIALOG_DATA, useValue: { professional } },
         { provide: AppointmentService, useValue: { getAvailableSlots, staffBook: () => of({}) } },
-        { provide: PatientService, useValue: { search: () => of([]) } },
+        { provide: PatientService, useValue: { search } },
       ],
     }).compileComponents();
 
@@ -97,5 +105,89 @@ describe('BookAppointmentDialogComponent', () => {
   it('does not allow submitting until a slot and a patient are selected', async () => {
     const fixture = await createComponent(oneService);
     expect(fixture.componentInstance.canSubmit()).toBe(false);
+  });
+
+  it('selecting a patient does not trigger an invalid search and later searches keep working', async () => {
+    const patient: PatientSearchResult = {
+      id: 5,
+      fullName: 'Franco Palavecino',
+      email: 'franco@example.com',
+      phone: '1122334455',
+      registered: true,
+    };
+
+    const search = vi.fn((term: string) => of([patient]));
+    const fixture = await createComponent(oneService, () => of([]), search);
+    const component = fixture.componentInstance;
+
+    // Simulate the user typing to find the patient.
+    component.patientSearchControl.setValue('Franco');
+    await waitForDebounce();
+    fixture.detectChanges();
+    expect(search).toHaveBeenCalledWith('Franco');
+
+    // Selecting the patient writes the full PatientSearchResult into the
+    // control (via [displayWith]), which must NOT trigger another search.
+    search.mockClear();
+    component.selectPatient(patient);
+    component.patientSearchControl.setValue(patient);
+    await waitForDebounce();
+    fixture.detectChanges();
+
+    expect(search).not.toHaveBeenCalled();
+    expect(component.errorMessage()).toBeNull();
+
+    // Clearing the selection and searching again must still work.
+    component.clearSelectedPatient();
+    search.mockClear();
+    component.patientSearchControl.setValue('Otro Paciente');
+    await waitForDebounce();
+    fixture.detectChanges();
+
+    expect(search).toHaveBeenCalledWith('Otro Paciente');
+  });
+
+  it('does not kill the search subscription when a search request fails', async () => {
+    const search = vi
+      .fn()
+      .mockReturnValueOnce(throwError(() => new Error('network error')))
+      .mockReturnValueOnce(of([]));
+
+    const fixture = await createComponent(oneService, () => of([]), search);
+    const component = fixture.componentInstance;
+
+    component.patientSearchControl.setValue('Fail');
+    await waitForDebounce();
+    fixture.detectChanges();
+
+    expect(component.errorMessage()).toBe('No pudimos buscar pacientes. Probá de nuevo.');
+
+    // A subsequent search must still run - the subscription must not have died.
+    component.patientSearchControl.setValue('Retry');
+    await waitForDebounce();
+    fixture.detectChanges();
+
+    expect(search).toHaveBeenCalledWith('Retry');
+  });
+
+  it('enables canSubmit in guest mode once name and phone are filled', async () => {
+    const getAvailableSlots = vi
+      .fn()
+      .mockReturnValue(of([{ startTime: '2026-08-12T10:00:00', endTime: '2026-08-12T11:00:00' }]));
+
+    const fixture = await createComponent(oneService, getAvailableSlots);
+    const component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    component.selectSlot(component.slots()[0]);
+    component.setPatientMode('guest');
+    fixture.detectChanges();
+
+    expect(component.canSubmit()).toBe(false);
+
+    component.guestForm.setValue({ name: 'Juana Perez', phone: '1133445566', email: '' });
+    fixture.detectChanges();
+
+    expect(component.canSubmit()).toBe(true);
   });
 });
