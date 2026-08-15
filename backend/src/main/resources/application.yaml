@@ -6,6 +6,12 @@ spring:
     url: jdbc:postgresql://localhost:5432/turnero
     username: turnero_user
     password: turnero_pass
+    hikari:
+      minimum-idle: 0
+      maximum-pool-size: 5
+      idle-timeout: 30000
+      max-lifetime: 1740000
+      connection-timeout: 30000
 
   jpa:
     hibernate:
